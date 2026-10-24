@@ -1,6 +1,4 @@
 <?php require('includes/config.php');
-include "database.php";
-$link = mysqli_connect(DBHOST, DBUSER, DBPASS, DBNAME);
 ?>
 
 <html>
@@ -50,26 +48,23 @@ $link = mysqli_connect(DBHOST, DBUSER, DBPASS, DBNAME);
     
 
 <?php
-// Check connection
-if($link === false){
-    die("ERROR: Could not connect. " . mysqli_connect_error());
-}
- $user=$_GET["user"];
+ $user=$_GET['user'] ?? '';
 // Attempt select query execution with order by clause
 $sql = "select username,level,institute,lastsolvetime from members ORDER BY level DESC,lastsolvetime asc";
-if($result = mysqli_query($link, $sql)){
+$result = $db->query($sql);
   $rank=1;
   $myrank=0;
-    if(mysqli_num_rows($result) > 0){
-        echo "<table class='table table-hover'>";
-            echo "<thead class='thead-inverse'><tr class='table-header'>";
+  $hasRows=false;
+    echo "<table class='table table-hover'>";
+    echo "<thead class='thead-inverse'><tr class='table-header'>";
         echo "<th>Rank</th>";
         echo "<th>Name</th>";
         echo "<th>Institution</th>";
         echo "<th>Current Level</th>";
         echo "<th>Time of Answer</th>";
         echo "</tr></thead>";
-        while($row = mysqli_fetch_array($result)){
+        while($row = $result->fetch()){
+            $hasRows=true;
             if($user==$row["username"]) {echo "<b>";}
             echo "<tr>";
         echo "<td> $rank </td>";
@@ -83,17 +78,8 @@ if($result = mysqli_query($link, $sql)){
         }
         echo "</table>";
         if($user) echo "Your rank: ".$myrank;
-        // Close result set
-        mysqli_free_result($result);
-    } else{
-        echo "No records matching your query were found.";
-    }
-} else{
-    echo "ERROR: Could not able to execute $sql. " . mysqli_error($link);
-}
+        if(!$hasRows) echo "No records matching your query were found.";
  
-// Close connection
-mysqli_close($link);
 ?>
   
             

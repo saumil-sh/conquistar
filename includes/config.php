@@ -20,13 +20,21 @@ define('SITEEMAIL','samdon97@gmail.com');
 try {
 
 	//create PDO connection
-	$db = new PDO("mysql:host=".DBHOST.";dbname=".DBNAME, DBUSER, DBPASS);
-	$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	$db = new PDO(
+		"mysql:host=" . DBHOST . ";dbname=" . DBNAME . ";charset=utf8mb4",
+		DBUSER,
+		DBPASS,
+		array(
+			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+			PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+			PDO::ATTR_EMULATE_PREPARES => false,
+		)
+	);
 
 } catch(PDOException $e) {
-	//show error
-    echo '<p class="bg-danger">'.$e->getMessage().'</p>';
-    exit;
+	error_log($e->getMessage());
+	http_response_code(500);
+	exit('Database connection unavailable.');
 }
 
 //include the user class, pass in the database connection
@@ -35,4 +43,3 @@ include('classes/phpmailer/mail.php');
 $user = new User($db);
 $genpass= new Password();
 ?>
-

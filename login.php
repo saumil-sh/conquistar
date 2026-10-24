@@ -1,7 +1,6 @@
 <?php
 //include config
 require_once('includes/config.php');
-include 'database.php';
 
 //check if already logged in move to home page
 if( $user->is_logged_in() ){ header('Location: memberpage.php'); } 
@@ -12,10 +11,8 @@ if(isset($_POST['submit'])){
 	$password = $_POST['password'];
 	
 	if($user->login($username,$password)){ 
-		$_SESSION['username'] = "$username";
-		$query = "UPDATE members set logincount=logincount+1 WHERE username LIKE '".$_POST['username']."' ";
-		echo $query;
-        $result = $mysqli->query($query) or die($mysqli->error);
+		$stmt = $db->prepare('UPDATE members SET logincount = logincount + 1 WHERE username = :username');
+		$stmt->execute(array(':username' => $username));
 		header('Location: memberpage.php');
 		exit;
 	

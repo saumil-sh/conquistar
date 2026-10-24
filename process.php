@@ -1,5 +1,4 @@
 <?php require('includes/config.php'); 
-    include 'database.php';
     include 'increment.php';
  ob_start();
  ob_implicit_flush(true);
@@ -44,9 +43,9 @@
   </div>
 </nav>';
 
-		$query = "SELECT level,email,username,memberID FROM members WHERE username LIKE '".$_SESSION['username']."' ";
-        $result = $mysqli->query($query) or die($mysqli->error);
-        $res = $result->fetch_assoc();
+		$stmt = $db->prepare('SELECT level,email,username,memberID FROM members WHERE username = :username');
+		$stmt->execute(array(':username' => $_SESSION['username']));
+        $res = $stmt->fetch();
         if($res["memberID"]!=1) {header('Location: memberpage.php');} //Comment to start process
         $_SESSION["userlevel"]=$res["level"];
     if($_POST["ans"])
@@ -60,14 +59,14 @@
 			));
             $gans=str_replace(" ","",$_POST['ans']);
             $gans=strtolower($gans);
-            $query = "SELECT qID,Answer FROM questions WHERE qID = ".$res["level"];
-            $result = $mysqli->query($query) or die($mysqli->error);
-            $res2 = $result->fetch_assoc();
+            $stmt = $db->prepare('SELECT qID,Answer FROM questions WHERE qID = :level');
+            $stmt->execute(array(':level' => $res['level']));
+            $res2 = $stmt->fetch();
             
             if($genpass->password_verify($gans,$res2["Answer"]) == 1)
             {
-                $query = "UPDATE members set level=".$res["level"]."+1,lastsolvetime=ADDTIME(NOW(),'5:30:00') WHERE username LIKE '".$_SESSION['username']."' ";
-                $result = $mysqli->query($query) or die($mysqli->error);
+                $stmt = $db->prepare("UPDATE members SET level = :level + 1, lastsolvetime = ADDTIME(NOW(), '5:30:00') WHERE username = :username");
+                $stmt->execute(array(':level' => $res['level'], ':username' => $_SESSION['username']));
                 header('Location: process.php');
             }
             else

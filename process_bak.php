@@ -1,5 +1,4 @@
 <?php require_once('includes/config.php');
-include 'database.php';
 include 'increment.php';
  ob_start();
  ob_implicit_flush(true);
@@ -36,10 +35,9 @@ li a:hover {
 
 
 		if(!$user->is_logged_in() ){ header('Location: login.php'); }
-		$query = "SELECT username,level,email FROM members WHERE username LIKE '".$_SESSION['username']."' ";
-		//echo $query;
-        $result = $mysqli->query($query) or die($mysqli->error);
-        $res = $result->fetch_assoc();
+		$stmt = $db->prepare('SELECT username,level,email FROM members WHERE username = :username');
+		$stmt->execute(array(':username' => $_SESSION['username']));
+        $res = $stmt->fetch();
     echo '<ul>
     <li><a class="active" href="process.php">Home</a></li>  
     <li><a href="memberpage.php">Dashboard</a></li>
@@ -50,9 +48,9 @@ li a:hover {
         {
             $acans=strtolower($_POST['ans']);
             //echo $hans."\n";
-            $query = "SELECT qID,Answer FROM questions WHERE qID = ".$res["level"];
-            $result = $mysqli->query($query) or die($mysqli->error);
-            $res2 = $result->fetch_assoc();
+            $stmt = $db->prepare('SELECT qID,Answer FROM questions WHERE qID = :level');
+            $stmt->execute(array(':level' => $res['level']));
+            $res2 = $stmt->fetch();
             //echo $query."\n";
             
             if($genpass->password_verify($acans,$res2["Answer"]) == 1)

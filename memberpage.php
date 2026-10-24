@@ -4,12 +4,9 @@ $title = 'Conquistar | Dashboard';
 require('layout/header.php'); 
 if(!$user->is_logged_in()){ header('Location: login.php'); } 
 
-//include header template
-
-include 'database.php';
-$query = "SELECT level,email FROM members WHERE username LIKE '".$_SESSION['username']."' ";
-$result = $mysqli->query($query) or die($mysqli->error);
-$res = $result->fetch_assoc();
+$stmt = $db->prepare('SELECT level,email FROM members WHERE username = :username');
+$stmt->execute(array(':username' => $_SESSION['username']));
+$res = $stmt->fetch();
 ?>
 
 <div class="container">

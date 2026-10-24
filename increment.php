@@ -1,5 +1,5 @@
 <?php
-include 'database.php';
+require_once('includes/config.php');
 function getUserIP()
 {
 	$client  = @$_SERVER['HTTP_CLIENT_IP'];
@@ -28,38 +28,41 @@ function generateKey()
 	        $ky.=chr(mt_rand(65,90));
 	return $ky;
 }
-function increment($memid,$pno,$mysqli,$fid,$streak)
+function increment($memid,$pno,$db,$fid,$streak)
 {
     $s=1;
 	$pno++;
 	if($streak>=3)
 	    $s=$s+1;
-	$sql = "UPDATE `members` SET `noPeople` = '$pno',streaks=streaks+1,noPasses=0,score=score+$s WHERE `members`.`username` = '$_SESSION[username]' ";
-	$mysqli->query($sql);
+	$stmt = $db->prepare('UPDATE members SET noPeople = :people, streaks = streaks + 1, noPasses = 0, score = score + :score WHERE username = :username');
+	$stmt->execute(array(':people' => $pno, ':score' => $s, ':username' => $_SESSION['username']));
 	/*$nk=generateKey();
 	$sql = "UPDATE `members` SET `publicKey` = '$nk' WHERE `members`.`memberID` = '$fid' ";
-	$mysqli->query($sql);*/
+	$db->exec($sql);*/
 }
-function allowedPass($memid,$mysqli)
+function allowedPass($memid,$db)
 {
-	$query = "select memberID,TIMESTAMPDIFF(MINUTE,NOW(),lastsolvetime) as mingap,noPasses from members where memberID=$memid";
-	$result = $mysqli->query($query) or die($mysqli->error);
-	$res=$result->fetch_assoc();
+	$stmt = $db->prepare('SELECT memberID,TIMESTAMPDIFF(MINUTE,NOW(),lastsolvetime) AS mingap,noPasses FROM members WHERE memberID = :member_id');
+	$stmt->execute(array(':member_id' => $memid));
+	$res=$stmt->fetch();
 	if($res['noPasses']==0)
 		return 0;
 	$mg=abs($res['mingap']);
 	return (pow(2,$res['noPasses']-1)-$mg); #If this is negative, pass allowed.
 }
-function getFindID($memid,$missid,$mysqli,$allowrep)
+function getFindID($memid,$missid,$db,$allowrep)
 {
 	$uns=[];
-	if($allowrep==0)
-		$query = "select memberID from members WHERE active='Yes' AND memberID NOT IN (SELECT foundID from matched where finderID=".$memid.") AND memberID NOT IN (SELECT foundID from passed WHERE finderID=$memid)";
-	else
-		$query = "select memberID from members WHERE active='Yes' AND memberID NOT IN (SELECT foundID from matched where finderID=".$memid.")";
-	$result2 = $mysqli->query($query) or die($mysqli->error);
+	$query = "SELECT memberID FROM members WHERE active = 'Yes' AND memberID NOT IN (SELECT foundID FROM matched WHERE finderID = :finder_id)";
+	$params = array(':finder_id' => $memid);
+	if($allowrep==0) {
+		$query .= ' AND memberID NOT IN (SELECT foundID FROM passed WHERE finderID = :passed_finder_id)';
+		$params[':passed_finder_id'] = $memid;
+	}
+	$stmt = $db->prepare($query);
+	$stmt->execute($params);
 	$i=-1;
-	while($row = $result2->fetch_assoc())
+	while($row = $stmt->fetch())
 	{
 		$i++;
 		$uns[$i]=$row['memberID'];
@@ -68,7 +71,7 @@ function getFindID($memid,$missid,$mysqli,$allowrep)
 	if($i==0)
 	{
 		if($allowrep==0)
-			return getFindID($memid,$missid,$mysqli,1);
+			return getFindID($memid,$missid,$db,1);
 		else
 			return -1;
 	}
@@ -81,15 +84,15 @@ function getFindID($memid,$missid,$mysqli,$allowrep)
 			if($i==1)
 			{
 				if($allowrep==0) #This condition if you want to allow passing the last person and cycling into unpassed people.
-					return getFindID($memid,$missid,$mysqli,1); 
+					return getFindID($memid,$missid,$db,1);
 				else
 					return $x;
 			}
-			return getFindID($memid,$missid,$mysqli,$allowrep);
+			return getFindID($memid,$missid,$db,$allowrep);
 		}
 		else
 			return $x;
 	}
 }
-function makeUpdate($mysqli,$query) {$mysqli->query($query) or die($mysqli->error);}
+function makeUpdate($db,$query) {$db->exec($query);}
 ?>

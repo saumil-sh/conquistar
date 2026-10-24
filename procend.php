@@ -1,7 +1,6 @@
-<?php
+<?php require_once('includes/config.php');
     
-    $query = "SELECT lockedq from members where lockedq=1";
-    $result = $mysqli->query($query) or die($mysqli->error);
-    if(!$result->fetch_assoc())
+    $result = $db->query('SELECT lockedq FROM members WHERE lockedq = 1');
+    if(!$result->fetch())
         chmod("questions",0700); 
 ?>
