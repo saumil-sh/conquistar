@@ -29,16 +29,20 @@ function csrf_is_valid() {
 		&& hash_equals($_SESSION['csrf_token'], $_POST['csrf_token']);
 }
 
-if (!isset($_SESSION['csrf_token'])) {
+$csrfSessionMissing = !isset($_SESSION['csrf_token']);
+if ($csrfSessionMissing) {
 	$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !csrf_is_valid()) {
 	http_response_code(400);
-	if (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'process.php' && empty($_SESSION['loggedin'])) {
+	if (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'process.php' && empty($_SESSION['loggedin']) && ($csrfSessionMissing || !isset($_POST['csrf_token']))) {
 		exit('Your quiz session expired. Please <a href="login.php">log in</a> and reopen the quiz before submitting again.');
 	}
-	exit('Invalid form submission.');
+	if ($csrfSessionMissing || !isset($_POST['csrf_token'])) {
+		exit('Your session or form token expired. Go back, reload the form, and try again.');
+	}
+	exit('This form could not be verified. Go back, reload the form, and try again.');
 }
 
 //set timezone
