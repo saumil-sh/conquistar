@@ -2,10 +2,40 @@
 ob_start();
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
+ini_set('session.use_strict_mode', '1');
+ini_set('session.use_only_cookies', '1');
+ini_set('session.use_trans_sid', '0');
+session_set_cookie_params(array(
+	'lifetime' => 0,
+	'path' => '/',
+	'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+	'httponly' => true,
+	'samesite' => 'Lax',
+));
 session_start();
 
 function h($value) {
 	return htmlspecialchars(is_scalar($value) ? (string) $value : '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function csrf_field() {
+	return '<input type="hidden" name="csrf_token" value="' . h($_SESSION['csrf_token']) . '">';
+}
+
+function csrf_is_valid() {
+	return isset($_POST['csrf_token'], $_SESSION['csrf_token'])
+		&& is_string($_SESSION['csrf_token'])
+		&& is_string($_POST['csrf_token'])
+		&& hash_equals($_SESSION['csrf_token'], $_POST['csrf_token']);
+}
+
+if (!isset($_SESSION['csrf_token'])) {
+	$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !csrf_is_valid()) {
+	http_response_code(400);
+	exit('Invalid form submission.');
 }
 
 //set timezone

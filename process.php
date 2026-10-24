@@ -1,8 +1,7 @@
 <?php require('includes/config.php'); 
     include 'increment.php';
  ob_start();
- ob_implicit_flush(true);
- if( !$user->is_logged_in() ){ header('Location: login.php'); }
+ if( !$user->is_logged_in() ){ header('Location: login.php'); exit; }
  else //Remove this block to allow process.php to work normally
  {
      //if($SESSION["username"]!="venkata") {header('Location: memberpage.php');}
@@ -37,7 +36,7 @@
         <a class="nav-link" href="leaderboard.php?user=' . h(rawurlencode($_SESSION['username'])) . '">Leaderboard</a>
       </li>
     <li class="nav-item">
-        <a class="nav-link" href="logout.php">Logout</a>
+        <form method="post" action="logout.php">' . csrf_field() . '<button type="submit" class="nav-link btn btn-link">Logout</button></form>
       </li>
     </ul>
   </div>
@@ -46,18 +45,19 @@
 		$stmt = $db->prepare('SELECT level,email,username,memberID FROM members WHERE username = :username');
 		$stmt->execute(array(':username' => $_SESSION['username']));
         $res = $stmt->fetch();
-        if($res["memberID"]!=1) {header('Location: memberpage.php');} //Comment to start process
+        if($res["memberID"]!=1) {header('Location: memberpage.php'); exit;} //Comment to start process
         $_SESSION["userlevel"]=$res["level"];
-    if($_POST["ans"])
+    if(is_string($_POST['ans'] ?? null) && $_POST['ans'] !== '')
         {
+            $answer = $_POST['ans'];
             $uIP=$_SERVER['REMOTE_ADDR'];
             $logstmt = $db->prepare('INSERT INTO answerlog (memberID,answer,TimeOfAnswer,ip) VALUES (:memid,:ans,ADDTIME(NOW(),"5:30"),:ipadd)');
 			$logstmt->execute(array(
 				':memid' => $res["memberID"],
-				':ans' => $_POST["ans"],
+				':ans' => $answer,
 				':ipadd' => $uIP,
 			));
-            $gans=str_replace(" ","",$_POST['ans']);
+            $gans=str_replace(" ","",$answer);
             $gans=strtolower($gans);
             $stmt = $db->prepare('SELECT qID,Answer FROM questions WHERE qID = :level');
             $stmt->execute(array(':level' => $res['level']));
@@ -68,6 +68,7 @@
                 $stmt = $db->prepare("UPDATE members SET level = :level + 1, lastsolvetime = ADDTIME(NOW(), '5:30:00') WHERE username = :username");
                 $stmt->execute(array(':level' => $res['level'], ':username' => $_SESSION['username']));
                 header('Location: process.php');
+                exit;
             }
             else
                 echo "Wrong Answer";
@@ -83,6 +84,7 @@
 require('layout/footer.php'); 
 ?>
 <form action="process.php" method="post">
+                        <?= csrf_field() ?>
 
                         <div class="col-xs-15" style = "margin-left:100px; margin-right:100px;">
                           <input class="form-control" type="text" placeholder="Answer" name="ans">

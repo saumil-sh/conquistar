@@ -3,14 +3,14 @@
 require_once('includes/config.php');
 
 //check if already logged in move to home page
-if( $user->is_logged_in() ){ header('Location: memberpage.php'); } 
+if( $user->is_logged_in() ){ header('Location: memberpage.php'); exit; }
 //process login form if submitted
 if(isset($_POST['submit'])){
 
-	$username = $_POST['username'];
-	$password = $_POST['password'];
-	
-	if($user->login($username,$password)){ 
+	$username = is_string($_POST['username'] ?? null) ? $_POST['username'] : '';
+	$password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
+
+	if($user->login($username,$password)){
 		$stmt = $db->prepare('UPDATE members SET logincount = logincount + 1 WHERE username = :username');
 		$stmt->execute(array(':username' => $username));
 		header('Location: memberpage.php');
@@ -36,6 +36,7 @@ require('layout/header.php');
 
 	    <div class="col-xs-12 col-sm-8 col-md-6 col-sm-offset-2 col-md-offset-3">
 			<form role="form" method="post" action="" autocomplete="off">
+				<?= csrf_field() ?>
 				<h2>Please Login</h2>
 				<p><a href='./'>Back to home page</a></p>
 				<hr>

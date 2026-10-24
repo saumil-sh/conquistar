@@ -30,15 +30,29 @@ class User extends Password{
 
 		if($row && $this->password_verify($password,$row['password']) == 1){
 
+		    if (!session_regenerate_id(true)) {
+				return false;
+		    }
+		    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 		    $_SESSION['loggedin'] = true;
 		    $_SESSION['username'] = $row['username'];
 		    $_SESSION['memberID'] = $row['memberID'];
-		    $_SESSION["userlevel"]=$res["level"];
+		    $_SESSION['userlevel'] = $row['level'];
 		    return true;
 		}
 	}
 
 	public function logout(){
+		$params = session_get_cookie_params();
+		setcookie(session_name(), '', array(
+			'expires' => time() - 3600,
+			'path' => $params['path'],
+			'domain' => $params['domain'],
+			'secure' => $params['secure'],
+			'httponly' => $params['httponly'],
+			'samesite' => $params['samesite'],
+		));
+		$_SESSION = array();
 		session_destroy();
 	}
 

@@ -1,17 +1,18 @@
 <?php require('includes/config.php');
 
 //if logged in redirect to members page
-if( $user->is_logged_in() ){ header('Location: memberpage.php'); }
+if( $user->is_logged_in() ){ header('Location: memberpage.php'); exit; }
 
 //if form has been submitted process it
 if(isset($_POST['submit'])){
+	$email = is_string($_POST['email'] ?? null) ? $_POST['email'] : '';
 
 	//email validation
-	if(!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)){
+	if(!filter_var($email, FILTER_VALIDATE_EMAIL)){
 	    $error[] = 'Please enter a valid email address';
 	} else {
 		$stmt = $db->prepare('SELECT email FROM members WHERE email = :email');
-		$stmt->execute(array(':email' => $_POST['email']));
+		$stmt->execute(array(':email' => $email));
 		$row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 		if(empty($row['email'])){
@@ -74,6 +75,7 @@ require('layout/header.php');
 
 	    <div class="col-xs-12 col-sm-8 col-md-6 col-sm-offset-2 col-md-offset-3">
 			<form role="form" method="post" action="" autocomplete="off">
+				<?= csrf_field() ?>
 				<h2>Reset Password</h2>
 				<p><a href='login.php'>Back to login page</a></p>
 				<hr>

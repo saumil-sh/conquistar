@@ -33,7 +33,7 @@
         <a class="nav-link" href="leaderboard.php">Leaderboard</a>
       </li>
     <li class="nav-item">
-        <a class="nav-link" href="logout.php">Logout</a>
+      <form method="post" action="logout.php"><?= csrf_field() ?><button class="nav-link btn btn-link" type="submit">Logout</button></form>
       </li>
     </ul>
   </div>

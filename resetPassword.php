@@ -1,10 +1,11 @@
 <?php require('includes/config.php'); 
 
 //if logged in redirect to members page
-if( $user->is_logged_in() ){ header('Location: memberpage.php'); } 
+if( $user->is_logged_in() ){ header('Location: memberpage.php'); exit; }
 
+$key = is_string($_GET['key'] ?? null) ? $_GET['key'] : '';
 $stmt = $db->prepare('SELECT resetToken, resetComplete FROM members WHERE resetToken = :token');
-$stmt->execute(array(':token' => $_GET['key']));
+$stmt->execute(array(':token' => $key));
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 //if no token from db then kill the page
@@ -16,17 +17,19 @@ if(empty($row['resetToken'])){
 
 //if form has been submitted process it
 if(isset($_POST['submit'])){
+	$password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
+	$passwordConfirm = is_string($_POST['passwordConfirm'] ?? null) ? $_POST['passwordConfirm'] : '';
 
 	//basic validation
-	if(strlen($_POST['password']) < 3){
+	if(strlen($password) < 3){
 		$error[] = 'Password is too short.';
 	}
 
-	if(strlen($_POST['passwordConfirm']) < 3){
+	if(strlen($passwordConfirm) < 3){
 		$error[] = 'Confirm password is too short.';
 	}
 
-	if($_POST['password'] != $_POST['passwordConfirm']){
+	if($password != $passwordConfirm){
 		$error[] = 'Passwords do not match.';
 	}
 
@@ -34,7 +37,7 @@ if(isset($_POST['submit'])){
 	if(!isset($error)){
 
 		//hash the password
-		$hashedpassword = $user->password_hash($_POST['password'], PASSWORD_BCRYPT);
+		$hashedpassword = $user->password_hash($password, PASSWORD_BCRYPT);
 
 		try {
 
@@ -78,6 +81,7 @@ require('layout/header.php');
 	    	} else { ?>
 
 				<form role="form" method="post" action="" autocomplete="off">
+					<?= csrf_field() ?>
 					<h2>Change Password</h2>
 					<hr>
 

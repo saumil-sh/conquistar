@@ -1,1 +1,1 @@
-<?php header('Location: memberpage.php');?>
+<?php header('Location: memberpage.php'); exit;?>

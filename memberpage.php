@@ -1,12 +1,12 @@
 <?php require('includes/config.php'); 
 //define page title
 $title = 'Conquistar | Dashboard';
-require('layout/header.php'); 
-if(!$user->is_logged_in()){ header('Location: login.php'); } 
+if(!$user->is_logged_in()){ header('Location: login.php'); exit; }
 
 $stmt = $db->prepare('SELECT level,email FROM members WHERE username = :username');
 $stmt->execute(array(':username' => $_SESSION['username']));
 $res = $stmt->fetch();
+require('layout/header.php');
 ?>
 
 <div class="container">
@@ -22,7 +22,10 @@ $res = $stmt->fetch();
 				<p><font color="red"><strike>Start</strike></font></p>
 				<!--<p><a href="https://conquistar.iplug.website/process.php">Start</a></p>-->
 				<h3><a href="leaderboard.php">Leaderboard</a></h3>
-				<p><a href='logout.php'>Logout</a></p>
+				<form method="post" action="logout.php">
+					<?= csrf_field() ?>
+					<button type="submit" class="btn btn-link">Logout</button>
+				</form>
 				<hr>
 
 		</div>

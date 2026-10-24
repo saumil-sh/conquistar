@@ -1,17 +1,22 @@
 <?php require('includes/config.php');
 
 //if logged in redirect to members page
-if( $user->is_logged_in() ){ header('Location: memberpage.php'); }
+if( $user->is_logged_in() ){ header('Location: memberpage.php'); exit; }
 
 //if form has been submitted process it
 if(isset($_POST['submit'])){
+	$username = is_string($_POST['username'] ?? null) ? $_POST['username'] : '';
+	$email = is_string($_POST['email'] ?? null) ? $_POST['email'] : '';
+	$password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
+	$passwordConfirm = is_string($_POST['passwordConfirm'] ?? null) ? $_POST['passwordConfirm'] : '';
+	$institute = is_string($_POST['ins'] ?? null) ? $_POST['ins'] : '';
 
 	//very basic validation
-	if(strlen($_POST['username']) < 3){
+	if(strlen($username) < 3){
 		$error[] = 'Username is too short.';
 	} else {
 		$stmt = $db->prepare('SELECT username FROM members WHERE username = :username');
-		$stmt->execute(array(':username' => $_POST['username']));
+		$stmt->execute(array(':username' => $username));
 		$row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 		if(!empty($row['username'])){
@@ -20,29 +25,29 @@ if(isset($_POST['submit'])){
 
 	}
 
-	if(strlen($_POST['password']) < 3){
+	if(strlen($password) < 3){
 		$error[] = 'Password is too short.';
 	}
 
-	if(strlen($_POST['passwordConfirm']) < 3){
+	if(strlen($passwordConfirm) < 3){
 		$error[] = 'Confirm password is too short.';
 	}
 
-	if($_POST['password'] != $_POST['passwordConfirm']){
+	if($password != $passwordConfirm){
 		$error[] = 'Passwords do not match.';
 	}
 	
-	if(strlen($_POST['ins']) < 3){
+	if(strlen($institute) < 3){
 		$error[] = 'Institute is too short.';
 		
 	}
 
 	//email validation
-	if(!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)){
+	if(!filter_var($email, FILTER_VALIDATE_EMAIL)){
 	    $error[] = 'Please enter a valid email address';
 	} else {
 		$stmt = $db->prepare('SELECT email FROM members WHERE email = :email');
-		$stmt->execute(array(':email' => $_POST['email']));
+		$stmt->execute(array(':email' => $email));
 		$row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 		if(!empty($row['email'])){
@@ -64,7 +69,7 @@ if(isset($_POST['submit'])){
 			$nid=1;
 
 		//hash the password
-		$hashedpassword = $user->password_hash($_POST['password'], PASSWORD_BCRYPT);
+		$hashedpassword = $user->password_hash($password, PASSWORD_BCRYPT);
 
 		//create the activasion code
 		$activasion = md5(uniqid(rand(),true));
@@ -102,12 +107,12 @@ if(isset($_POST['submit'])){
 			$stmt = $db->prepare('INSERT INTO members (memberID,username,password,email,active,ip,institute,lastsolvetime) VALUES (:memid, :username, :password, :email, :active, :ip, :inst, :time)');
 			$stmt->execute(array(
 				':memid' => $nid,
-				':username' => $_POST['username'],
+				':username' => $username,
 				':password' => $hashedpassword,
-				':email' => $_POST['email'],
+				':email' => $email,
 				':active' => $activasion,
 				':ip' => $userip,
-				':inst' => $_POST['ins'],
+				':inst' => $institute,
 				':time' => $now,
 			));
 			$id=$nid;
@@ -115,7 +120,7 @@ if(isset($_POST['submit'])){
 
 			//send email
 			echo "Senidng mail";
-			$to = $_POST['email'];
+			$to = $email;
 			$subject = "Registration Confirmation";
 			$body = "<p>Thank you for registering for Conquistar 2020</p>
 			<p>To activate your account, please click on this link: <a href='".DIR."activate.php?x=$id&y=$activasion'>".DIR."activate.php?x=$id&y=$activasion</a></p>
@@ -156,6 +161,7 @@ require('layout/header.php');
 
 	    <div class="col-xs-12 col-sm-8 col-md-6 col-sm-offset-2 col-md-offset-3">
 			<form role="form" method="post" action="" autocomplete="off">
+				<?= csrf_field() ?>
 				<h2>Please Sign Up</h2>
 				<p>Already a member? <a href='login.php'>Login</a></p>
 				<hr>
