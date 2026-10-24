@@ -1,6 +1,5 @@
 <?php
 require('includes/config.php');
-include 'increment.php';
 
 //collect values from the url
 $memberID = trim($_GET['x']);

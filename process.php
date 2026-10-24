@@ -1,5 +1,4 @@
 <?php require('includes/config.php'); 
-    include 'increment.php';
  ob_start();
  if( !$user->is_logged_in() ){ header('Location: login.php'); exit; }
  else //Remove this block to allow process.php to work normally
