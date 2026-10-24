@@ -6,17 +6,18 @@ $siteOwnersEmail = 'samdon97@gmail.com';
 
 if($_POST) {
 
-   $name = trim(stripslashes($_POST['contactName']));
-   $email = trim(stripslashes($_POST['contactEmail']));
-   $subject = trim(stripslashes($_POST['contactSubject']));
-   $contact_message = trim(stripslashes($_POST['contactMessage']));
+   $name = is_string($_POST['contactName'] ?? null) ? trim(stripslashes($_POST['contactName'])) : '';
+   $email = is_string($_POST['contactEmail'] ?? null) ? trim(stripslashes($_POST['contactEmail'])) : '';
+   $subject = is_string($_POST['contactSubject'] ?? null) ? trim(stripslashes($_POST['contactSubject'])) : '';
+   $subject = str_replace(array("\r", "\n"), ' ', $subject);
+   $contact_message = is_string($_POST['contactMessage'] ?? null) ? trim(stripslashes($_POST['contactMessage'])) : '';
 
    // Check Name
 	if (strlen($name) < 2) {
 		$error['name'] = "Please enter your name.";
 	}
 	// Check Email
-	if (!preg_match('/^[a-z0-9&\'\.\-_\+]+@[a-z0-9\-]+\.([a-z0-9\-]+\.)*+[a-z]{2}/is', $email)) {
+	if (!preg_match('/^[a-z0-9&\'\.\-_+]+@[a-z0-9-]+\.([a-z0-9-]+\.)*+[a-z]{2}\z/i', $email)) {
 		$error['email'] = "Please enter a valid email address.";
 	}
 	// Check Message
@@ -34,12 +35,9 @@ if($_POST) {
    $message .= htmlspecialchars($contact_message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
    $message .= "<br /> ----- <br /> This email was sent from your site's contact form. <br />";
 
-   // Set From: header
-   $from =  $name . " <" . $email . ">";
-
    // Email Headers
-	$headers = "From: " . $from . "\r\n";
-	$headers .= "Reply-To: ". $email . "\r\n";
+	$headers = "From: " . $siteOwnersEmail . "\r\n";
+	$headers .= "Reply-To: " . $email . "\r\n";
  	$headers .= "MIME-Version: 1.0\r\n";
 	$headers .= "Content-Type: text/html; charset=ISO-8859-1\r\n";
 
