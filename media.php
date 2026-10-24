@@ -52,6 +52,8 @@ if ($playerLevel === false || $playerLevel < $media[$file][1]) {
 	exit;
 }
 
+session_write_close();
+
 $path = __DIR__ . '/' . $media[$file][0];
 if (!is_file($path) || !is_readable($path)) {
 	http_response_code(404);
