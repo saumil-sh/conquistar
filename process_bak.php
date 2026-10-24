@@ -59,7 +59,13 @@ li a:hover {
         }
     echo "<h2 align='center'>Welcome <b>".h($res['username'])."</b><br/><br/></h2>";
     echo "<h4 align='center'>You're on level ".h($res["level"])."</h4><br/>";
-    readfile("questions/q_".$res["level"].".html")[0];
+    $questionLevel = filter_var($res['level'], FILTER_VALIDATE_INT);
+    if ($questionLevel !== false && $questionLevel >= 0) {
+        $questionPath = __DIR__ . '/questions/q_' . $questionLevel . '.html';
+        if (is_file($questionPath)) {
+            readfile($questionPath);
+        }
+    }
 	    
 	    
 	    echo '<form role="form" method="post" action="process.php" autocomplete="off">' . csrf_field() . ' <p> Enter Answer: <input type="text" name="ans" id="ans" class="form-control input-lg" placeholder="Answer" value="" tabindex="1"/></p> <input type="submit" name="submit" value="Submit" class="btn btn-primary btn-block btn-lg" tabindex="6"><br/> </form>';

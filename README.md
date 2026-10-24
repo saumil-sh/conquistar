@@ -24,3 +24,9 @@ actual PHP version and cPanel settings must be verified on the server.
 
 Sources: [PHP security advisory](https://www.php.net/archive/2026.php#2026-10-21-5)
 and [session upload-progress advisory](https://www.php.net/archive/2026.php#2026-10-23-1).
+
+Question media is served by `media.php` from an explicit file map and is
+available only at or below the player's current level. Keep the web-server
+access rules in `accessible/.htaccess` and `questions/.htaccess` enabled; if a
+front-end server ignores Apache rules, deny direct access to both directories
+there as well.
