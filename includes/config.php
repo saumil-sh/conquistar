@@ -35,6 +35,9 @@ if (!isset($_SESSION['csrf_token'])) {
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !csrf_is_valid()) {
 	http_response_code(400);
+	if (basename($_SERVER['SCRIPT_NAME'] ?? '') === 'process.php' && empty($_SESSION['loggedin'])) {
+		exit('Your quiz session expired. Please <a href="login.php">log in</a> and reopen the quiz before submitting again.');
+	}
 	exit('Invalid form submission.');
 }
 
