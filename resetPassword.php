@@ -4,19 +4,19 @@
 if( $user->is_logged_in() ){ header('Location: memberpage.php'); exit; }
 
 $key = is_string($_GET['key'] ?? null) ? $_GET['key'] : '';
-$stmt = $db->prepare('SELECT resetToken, resetComplete FROM members WHERE resetToken = :token');
+$stmt = $db->prepare('SELECT memberID, resetToken, resetComplete FROM members WHERE resetToken = :token');
 $stmt->execute(array(':token' => $key));
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 //if no token from db then kill the page
 if(empty($row['resetToken'])){
 	$stop = 'Invalid token provided, please use the link provided in the reset email.';
-} elseif($row['resetComplete'] == 'Yes') {
+} elseif($row['resetComplete'] !== 'No') {
 	$stop = 'Your password has already been changed!';
 }
 
 //if form has been submitted process it
-if(isset($_POST['submit'])){
+if(!isset($stop) && isset($_POST['submit'])){
 	$password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
 	$passwordConfirm = is_string($_POST['passwordConfirm'] ?? null) ? $_POST['passwordConfirm'] : '';
 
@@ -41,15 +41,19 @@ if(isset($_POST['submit'])){
 
 		try {
 
-			$stmt = $db->prepare("UPDATE members SET password = :hashedpassword, resetComplete = 'Yes'  WHERE resetToken = :token");
+			$stmt = $db->prepare("UPDATE members SET password = :hashedpassword, resetToken = '', resetComplete = 'Yes' WHERE memberID = :member_id AND resetToken = :token AND resetComplete = 'No'");
 			$stmt->execute(array(
 				':hashedpassword' => $hashedpassword,
+				':member_id' => $row['memberID'],
 				':token' => $row['resetToken']
 			));
 
-			//redirect to index page
-			header('Location: login.php?action=resetAccount');
-			exit;
+			if ($stmt->rowCount() === 1) {
+				header('Location: login.php?action=resetAccount');
+				exit;
+			}
+
+			$stop = 'This password reset link is invalid or has already been used.';
 
 		//else catch the exception and show the error.
 		} catch(PDOException $e) {
