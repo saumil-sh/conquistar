@@ -1,5 +1,7 @@
 <?php
 ob_start();
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: strict-origin-when-cross-origin');
 session_start();
 
 //set timezone
@@ -33,5 +35,4 @@ include('classes/phpmailer/mail.php');
 $user = new User($db);
 $genpass= new Password();
 ?>
-
 
