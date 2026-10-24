@@ -4,6 +4,10 @@ header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 session_start();
 
+function h($value) {
+	return htmlspecialchars(is_scalar($value) ? (string) $value : '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
 //set timezone
 date_default_timezone_set('Europe/Germany');
 

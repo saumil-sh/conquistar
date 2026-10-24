@@ -14,9 +14,9 @@ $res = $stmt->fetch();
 	<div class="row">
 
 	    <div class="col-xs-12 col-sm-8 col-md-6 col-sm-offset-2 col-md-offset-3">
-				<h2>Welcome <?php echo $_SESSION['username']; ?></h2>
-				<p>Your current level: <?php echo $res["level"];?> </p>
-				<p>Please note that all mail communication will take place via/on: <?php echo $res["email"];?> </p>
+				<h2>Welcome <?php echo h($_SESSION['username']); ?></h2>
+				<p>Your current level: <?php echo h($res["level"]);?> </p>
+				<p>Please note that all mail communication will take place via/on: <?php echo h($res["email"]);?> </p>
 				<!--<p>Game <b>has officially ended</b></p>-->
 				<p>The game officially <b>Ends!!</b></p>
 				<p><font color="red"><strike>Start</strike></font></p>

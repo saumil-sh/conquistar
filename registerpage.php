@@ -164,7 +164,7 @@ require('layout/header.php');
 				//check for any errors
 				if(isset($error)){
 					foreach($error as $error){
-						echo '<p class="bg-danger">'.$error.'</p>';
+						echo '<p class="bg-danger">'.h($error).'</p>';
 					}
 				}
 
@@ -175,10 +175,10 @@ require('layout/header.php');
 				?>
 
 				<div class="form-group">
-					<input type="text" name="username" id="username" class="form-control input-lg" placeholder="User Name" value="<?php if(isset($error)){ echo $_POST['username']; } ?>" tabindex="1">
+					<input type="text" name="username" id="username" class="form-control input-lg" placeholder="User Name" value="<?php if(isset($error)){ echo h($_POST['username'] ?? ''); } ?>" tabindex="1">
 				</div>
 				<div class="form-group">
-					<input type="email" name="email" id="email" class="form-control input-lg" placeholder="Email Address, this will be used to contact the winner" value="<?php if(isset($error)){ echo $_POST['email']; } ?>" tabindex="2">
+					<input type="email" name="email" id="email" class="form-control input-lg" placeholder="Email Address, this will be used to contact the winner" value="<?php if(isset($error)){ echo h($_POST['email'] ?? ''); } ?>" tabindex="2">
 				</div>
 				<div class="form-group">
 					<input type="text" name="ins" id="ins" class="form-control input-lg" placeholder="Institution"  tabindex="3">

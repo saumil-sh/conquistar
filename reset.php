@@ -82,7 +82,7 @@ require('layout/header.php');
 				//check for any errors
 				if(isset($error)){
 					foreach($error as $error){
-						echo '<p class="bg-danger">'.$error.'</p>';
+						echo '<p class="bg-danger">'.h($error).'</p>';
 					}
 				}
 

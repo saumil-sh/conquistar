@@ -68,16 +68,16 @@ $result = $db->query($sql);
             if($user==$row["username"]) {echo "<b>";}
             echo "<tr>";
         echo "<td> $rank </td>";
-                echo "<td>" . $row['username'] . "</td>";
-      echo "<td>" . $row['institute'] . "</td>";
-                echo "<td>" . $row['level'] . "</td>";
-                echo "<td>" . $row['lastsolvetime'] . "</td>";
+                echo "<td>" . h($row['username']) . "</td>";
+      echo "<td>" . h($row['institute']) . "</td>";
+                echo "<td>" . h($row['level']) . "</td>";
+                echo "<td>" . h($row['lastsolvetime']) . "</td>";
             echo "</tr>";
             if($user==$row["username"]) {echo "</b>"; $myrank=$rank;}
       $rank++;
         }
         echo "</table>";
-        if($user) echo "Your rank: ".$myrank;
+        if($user) echo "Your rank: ".h($myrank);
         if(!$hasRows) echo "No records matching your query were found.";
  
 ?>

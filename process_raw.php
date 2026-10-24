@@ -3,7 +3,7 @@
 		$stmt = $db->prepare('SELECT username,level,email FROM members WHERE username = :username');
 		$stmt->execute(array(':username' => $_SESSION['username']));
         $res = $stmt->fetch();
-    echo "Session ID: ".session_id();
+    echo "Session ID: ".h(session_id());
     echo '<ul>
     <li><a class="active" href="process.php">Home</a></li>  
     <li><a href="memberpage.php">Dashboard</a></li>
@@ -13,14 +13,14 @@
     if($_POST["ans"])
         {
             $hans=$genpass->password_hash($_POST['ans'], PASSWORD_BCRYPT);
-            echo $hans."\n";
+            echo h($hans)."\n";
             /*if($genpass->password_verify($_POST["ans"],$res2["Answer"]) == 1)
                 echo "Correct answer";
             else
                 echo "Wrong Answer";*/
         }
-    echo "<h2 align='center'>Welcome <b>".$res['username']."</b><br/><br/></h2>";
-    echo "<h4 align='center'>You're on level ".$res["level"]."</h4><br/>";
+    echo "<h2 align='center'>Welcome <b>".h($res['username'])."</b><br/><br/></h2>";
+    echo "<h4 align='center'>You're on level ".h($res["level"])."</h4><br/>";
     //readfile("questions/q_".$res["level"].".html")[0];
 	    
 	    

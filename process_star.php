@@ -34,7 +34,7 @@
         <a class="nav-link" href="https://www.facebook.com/ConquistarHunt">Hints</a>
       </li>
     <li class="nav-item">
-        <a class="nav-link" href="leaderboard.php?user="'.$_SESSION["username"].' >Leaderboard</a>
+        <a class="nav-link" href="leaderboard.php?user=' . h(rawurlencode($_SESSION['username'])) . '">Leaderboard</a>
       </li>
     <li class="nav-item">
         <a class="nav-link" href="logout.php">Logout</a>
@@ -73,7 +73,7 @@
                 echo "Wrong Answer";
         }
     echo "<br/>";
-    echo "<h2 align='center'>Welcome <b>".$res['username']."</b><br/><br/></h2>";
+    echo "<h2 align='center'>Welcome <b>".h($res['username'])."</b><br/><br/></h2>";
     readfile("questions/q_".$res["level"].".html")[0];
 	    
 	    

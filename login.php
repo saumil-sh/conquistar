@@ -44,7 +44,7 @@ require('layout/header.php');
 				//check for any errors
 				if(isset($error)){
 					foreach($error as $error){
-						echo '<p class="bg-danger">'.$error.'</p>';
+						echo '<p class="bg-danger">'.h($error).'</p>';
 					}
 				}
 
@@ -69,7 +69,7 @@ require('layout/header.php');
 				?>
 
 				<div class="form-group">
-					<input type="text" name="username" id="username" class="form-control input-lg" placeholder="User Name" value="<?php if(isset($error)){ echo $_POST['username']; } ?>" tabindex="1">
+					<input type="text" name="username" id="username" class="form-control input-lg" placeholder="User Name" value="<?php if(isset($error)){ echo h($_POST['username'] ?? ''); } ?>" tabindex="1">
 				</div>
 				
 

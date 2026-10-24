@@ -19,7 +19,8 @@ class User extends Password{
 			return $stmt->fetch();
 
 		} catch(PDOException $e) {
-		    echo '<p class="bg-danger">'.$e->getMessage().'</p>';
+			error_log($e->getMessage());
+			return false;
 		}
 	}
 
@@ -27,7 +28,7 @@ class User extends Password{
 
 		$row = $this->get_user_hash($username);
 
-		if($this->password_verify($password,$row['password']) == 1){
+		if($row && $this->password_verify($password,$row['password']) == 1){
 
 		    $_SESSION['loggedin'] = true;
 		    $_SESSION['username'] = $row['username'];

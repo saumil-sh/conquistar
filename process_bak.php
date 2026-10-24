@@ -58,8 +58,8 @@ li a:hover {
             else
                 echo "Wrong Answer";
         }
-    echo "<h2 align='center'>Welcome <b>".$res['username']."</b><br/><br/></h2>";
-    echo "<h4 align='center'>You're on level ".$res["level"]."</h4><br/>";
+    echo "<h2 align='center'>Welcome <b>".h($res['username'])."</b><br/><br/></h2>";
+    echo "<h4 align='center'>You're on level ".h($res["level"])."</h4><br/>";
     readfile("questions/q_".$res["level"].".html")[0];
 	    
 	    

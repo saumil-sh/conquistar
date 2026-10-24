@@ -73,7 +73,7 @@ require('layout/header.php');
 
 	    	<?php if(isset($stop)){
 
-	    		echo "<p class='bg-danger'>$stop</p>";
+				echo "<p class='bg-danger'>".h($stop)."</p>";
 
 	    	} else { ?>
 
@@ -85,7 +85,7 @@ require('layout/header.php');
 					//check for any errors
 					if(isset($error)){
 						foreach($error as $error){
-							echo '<p class="bg-danger">'.$error.'</p>';
+							echo '<p class="bg-danger">'.h($error).'</p>';
 						}
 					}
 

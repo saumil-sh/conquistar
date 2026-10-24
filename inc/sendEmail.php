@@ -28,10 +28,10 @@ if($_POST) {
 
 
    // Set Message
-   $message .= "Email from: " . $name . "<br />";
-	$message .= "Email address: " . $email . "<br />";
+   $message .= "Email from: " . htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "<br />";
+	$message .= "Email address: " . htmlspecialchars($email, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . "<br />";
    $message .= "Message: <br />";
-   $message .= $contact_message;
+   $message .= htmlspecialchars($contact_message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
    $message .= "<br /> ----- <br /> This email was sent from your site's contact form. <br />";
 
    // Set From: header
