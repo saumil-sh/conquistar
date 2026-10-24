@@ -2,6 +2,7 @@
 
 // Replace this with your own email address
 $siteOwnersEmail = 'samdon97@gmail.com';
+require_once(__DIR__ . '/contactEmail.php');
 
 
 if($_POST) {
@@ -17,7 +18,7 @@ if($_POST) {
 		$error['name'] = "Please enter your name.";
 	}
 	// Check Email
-	if (!preg_match('/^[a-z0-9&\'\.\-_+]+@[a-z0-9-]+\.([a-z0-9-]+\.)*+[a-z]{2}\z/i', $email)) {
+	if (!is_valid_contact_email($email)) {
 		$error['email'] = "Please enter a valid email address.";
 	}
 	// Check Message
