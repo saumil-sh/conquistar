@@ -26,7 +26,8 @@ Set `APP_URL` to the trusted absolute base URL used in activation and password
 reset emails (for example, `https://example.org/`). Do not derive it from the
 incoming request host. `schema.sql` is the canonical schema for a fresh
 database. It includes the final columns introduced by the Phase 2 migrations
-and the leaderboard index; do not apply those migrations on top of it.
+and the leaderboard index, plus the member login counter and unique account
+indexes; do not apply the upgrade migrations on top of it.
 
 For an existing database, review the SQL scripts in `migrations/` in this order
 against a verified backup; the application does not run them:
@@ -36,12 +37,19 @@ against a verified backup; the application does not run them:
 3. `phase2-08-request-limits.sql`
 4. `phase2-09-member-columns.sql`
 5. `phase3-11-leaderboard-index.sql`
+6. `phase3-12-member-login-indexes.sql`
 
 Before step 4, verify `members.memberID` is a non-null unique/primary key and
 that existing activation/reset tokens fit within 64 characters. The migration
 sets null levels to zero before enforcing `NOT NULL DEFAULT 0`.
 Before step 5, verify the index does not already exist. No live database schema
 has been verified, and no migration has been run against a real database.
+Before step 6, verify `logincount` and the named unique indexes are absent, and
+check for duplicate usernames and emails; resolve duplicates manually before
+adding either unique key. If any of these already exist, verify their
+definitions and skip the corresponding addition rather than rerunning it. The
+fresh schema omits `answerlog_member_time`; no upgrade migration drops that
+index, so existing databases may retain it.
 
 The canonical schema describes the tables used by the current application:
 `members`, `questions`, `answerlog`, and `request_limits`. The obsolete schema

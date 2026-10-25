@@ -34,8 +34,7 @@ CREATE TABLE answerlog (
 	answer TEXT NOT NULL,
 	TimeOfAnswer DATETIME NOT NULL,
 	ip VARCHAR(45) NOT NULL,
-	PRIMARY KEY (logID),
-	KEY answerlog_member_time (memberID, TimeOfAnswer)
+	PRIMARY KEY (logID)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE request_limits (
