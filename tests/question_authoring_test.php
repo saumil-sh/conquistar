@@ -74,7 +74,7 @@ try {
 		&& $question['media'] === array()
 		&& $bomQuestion['id'] === $question['id'], 'Valid Markdown or BOM-prefixed question was not parsed.');
 
-	$testMediaCatalog = array('test-image' => array('images/test.png', 0, 'image/png'));
+	$testMediaCatalog = array('test-image' => array('accessible/test.png', 0, 'image/png'));
 	$mediaQuestionSource = str_replace(
 		"hint: Second hint\n",
 		"hint: Second hint\nmedia: test-image\n",
