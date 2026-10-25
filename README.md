@@ -76,3 +76,28 @@ available only at or below the player's current level. Keep the web-server
 access rules in `accessible/.htaccess` and `questions/.htaccess` enabled; if a
 front-end server ignores Apache rules, deny direct access to both directories
 there as well.
+
+## Authoring questions
+
+New questions use a small Markdown file with a stable lowercase ID, title,
+private answer, one or more hints, and optional approved media IDs:
+
+```markdown
+---
+id: sample-lunar
+title: Sample clue
+answer: Example answer
+hint: First example hint
+hint: Second example hint
+media: fb
+---
+# Sample clue
+
+Write the player-facing clue here.
+![Example image](media:fb)
+```
+
+Use one `id`, `title`, and `answer`; repeat `hint` or `media` as needed. Image
+references must use an ID in `includes/media-catalog.php`, and HTML or external
+image URLs are rejected. This format is deliberately limited; the existing 23
+HTML questions and their media are unchanged until the later content migration.

@@ -8,29 +8,7 @@ if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', array('GET', 'HEAD'), true)) 
 }
 
 $file = $_GET['file'] ?? '';
-$media = array(
-	'fb' => array('images/fb_.png', 2, 'image/png'),
-	'dyel' => array('images/dyel_.png', 3, 'image/png'),
-	'eeyore' => array('images/eeyore_.png', 4, 'image/png'),
-	'papa' => array('images/papa_.png', 5, 'image/png'),
-	'bingo' => array('images/bingo_.png', 6, 'image/png'),
-	'killingpeople' => array('images/killingpeople_.png', 7, 'image/png'),
-	'perfection' => array('images/perfection_.png', 10, 'image/png'),
-	'matchbox' => array('images/matchbox_.png', 12, 'image/png'),
-	'movies' => array('images/movies_.png', 13, 'image/png'),
-	'collage' => array('images/collage_.png', 15, 'image/png'),
-	'baadshah' => array('images/baadshah_.png', 20, 'image/png'),
-	'fish' => array('images/fish_.png', 21, 'image/png'),
-	'sparta-video' => array('accessible/sparta.mp4', 8, 'video/mp4'),
-	'challenge-video' => array('accessible/Is that even a challenge.mp4', 9, 'video/mp4'),
-	'song-video' => array('accessible/song.mp4', 11, 'video/mp4'),
-	'three-idiots-video' => array('accessible/3idiots.mp4', 16, 'video/mp4'),
-	'fakes-video' => array('accessible/fakes.mp4', 18, 'video/mp4'),
-	'matchbox-archive' => array('accessible/matchbox.zip', 12, 'application/zip'),
-	'baap-archive' => array('accessible/baap.zip', 17, 'application/zip'),
-	'soft-archive' => array('accessible/soft.zip', 19, 'application/zip'),
-	'animal-archive' => array('accessible/its_was_an_animal.zip', 20, 'application/zip'),
-);
+$media = require(__DIR__ . '/includes/media-catalog.php');
 
 if (!is_string($file) || !isset($media[$file])) {
 	http_response_code(404);
