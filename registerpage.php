@@ -80,11 +80,8 @@ if(isset($_POST['submit'])){
 		try {
 			$userip = $clientIp;
 			
-			date_default_timezone_set('Europe/Berlin');
-			$now = date("Y-m-d H:i:s");
-
 			//insert into database with a prepared statement
-			$stmt = $db->prepare("INSERT INTO members (username,password,email,active,activationExpiresAt,ip,institute,lastsolvetime) VALUES (:username, :password, :email, :active, DATE_ADD(NOW(), INTERVAL 1 DAY), :ip, :inst, :time)");
+			$stmt = $db->prepare("INSERT INTO members (username,password,email,active,activationExpiresAt,ip,institute,lastsolvetime) VALUES (:username, :password, :email, :active, DATE_ADD(NOW(), INTERVAL 1 DAY), :ip, :inst, ADDTIME(NOW(), '5:30:00'))");
 			$stmt->execute(array(
 				':username' => $username,
 				':password' => $hashedpassword,
@@ -92,7 +89,6 @@ if(isset($_POST['submit'])){
 				':active' => $activasion,
 				':ip' => $userip,
 				':inst' => $institute,
-				':time' => $now,
 			));
 			$id = $db->lastInsertId();
 			if ($id === false || $id === '0') {
