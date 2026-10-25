@@ -127,7 +127,6 @@ Publishing validates the file and moves it into the private release queue;
 the current player flow continues to serve the existing HTML questions until
 the later content migration. No Markdown answers or drafts are served publicly.
 
-The database-independent checks are `php tests/test_db_guard_test.php`,
-`php tests/question_format_test.php`, and
-`php tests/question_workflow_test.php`. The end-to-end suite is separate because
+The database-independent checks are `php tests/test_db_guard_test.php` and
+`php tests/question_authoring_test.php`. The end-to-end suite is separate because
 it requires the isolated local test database described above.

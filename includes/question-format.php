@@ -5,6 +5,9 @@ function parse_question_markdown($source, array $mediaCatalog)
 	if (!is_string($source) || strlen($source) > 25000 || strpos($source, "\0") !== false) {
 		throw new InvalidArgumentException('Question file is too large or invalid.');
 	}
+	if (substr($source, 0, 3) === "\xEF\xBB\xBF") {
+		$source = substr($source, 3);
+	}
 	$source = str_replace(array("\r\n", "\r"), "\n", $source);
 	if (!preg_match('/\A---\n(.*?)\n---\n(.+)\z/s', $source, $matches)) {
 		throw new InvalidArgumentException('Question needs a metadata block and Markdown body.');
@@ -73,4 +76,76 @@ function parse_question_markdown($source, array $mediaCatalog)
 
 	$fields['body'] = $body;
 	return $fields;
+}
+
+function question_parse_file($path, array $mediaCatalog)
+{
+	if (is_link($path) || !is_file($path)) {
+		throw new RuntimeException($path . ': expected a regular question file.');
+	}
+	$size = filesize($path);
+	if ($size === false || $size > 25000) {
+		throw new RuntimeException($path . ': question file is too large.');
+	}
+	$source = file_get_contents($path);
+	if ($source === false) {
+		throw new RuntimeException($path . ': could not read question file.');
+	}
+	try {
+		return parse_question_markdown($source, $mediaCatalog);
+	} catch (InvalidArgumentException $e) {
+		throw new InvalidArgumentException($path . ': ' . $e->getMessage());
+	}
+}
+
+function find_question_file($id, array $directories, array $mediaCatalog)
+{
+	$draftPath = $directories['drafts'] . DIRECTORY_SEPARATOR . $id . '.md';
+	$publishedPath = $directories['published'] . DIRECTORY_SEPARATOR . $id . '.md';
+	$hasDraft = file_exists($draftPath) || is_link($draftPath);
+	$hasPublished = file_exists($publishedPath) || is_link($publishedPath);
+	if ($hasDraft && $hasPublished) {
+		throw new RuntimeException('Duplicate question ID in ' . $draftPath . ' and ' . $publishedPath . '.');
+	}
+	if (!$hasDraft && !$hasPublished) {
+		throw new RuntimeException('Question ID was not found in drafts or published content.');
+	}
+
+	$path = $hasDraft ? $draftPath : $publishedPath;
+	$question = question_parse_file($path, $mediaCatalog);
+	if ($question['id'] !== $id) {
+		throw new RuntimeException($path . ': declared ID does not match the requested ID.');
+	}
+	return array(
+		'status' => $hasDraft ? 'draft' : 'published',
+		'path' => $path,
+		'question' => $question,
+	);
+}
+
+function question_preview_text(array $question)
+{
+	$preview = "Quiz-master preview (private)\n";
+	$preview .= "ID: " . $question['id'] . "\n";
+	$preview .= "Title: " . $question['title'] . "\n\n";
+	$preview .= $question['body'] . "\n\nHints:\n";
+	foreach ($question['hints'] as $hint) {
+		$preview .= "- " . $hint . "\n";
+	}
+	$preview .= "Answer: " . $question['answer'] . "\n";
+	$preview .= "Media: " . ($question['media'] ? implode(', ', $question['media']) : 'none') . "\n";
+	return $preview;
+}
+
+function publish_question_file($source, $destination)
+{
+	if (file_exists($destination) || is_link($destination)
+		|| is_link($source) || !is_file($source)
+		|| !@link($source, $destination)) {
+		throw new RuntimeException('Could not publish; the destination exists or safe publication is unavailable.');
+	}
+	if (!@unlink($source)) {
+		@unlink($destination);
+		throw new RuntimeException('Could not complete publication; the draft was retained.');
+	}
 }

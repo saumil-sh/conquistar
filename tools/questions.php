@@ -45,50 +45,6 @@ function question_authoring_dirs()
 	return $directories;
 }
 
-function question_authoring_files(array $directories, array $mediaCatalog)
-{
-	$questions = array();
-	foreach ($directories as $status => $directory) {
-		foreach (glob($directory . DIRECTORY_SEPARATOR . '*.md') ?: array() as $path) {
-			if (is_link($path) || !is_file($path)) {
-				throw new RuntimeException('Question files cannot be links or special files.');
-			}
-			$size = filesize($path);
-			if ($size === false || $size > 25000) {
-				throw new RuntimeException('Question file is too large.');
-			}
-			$contents = file_get_contents($path);
-			if ($contents === false) {
-				throw new RuntimeException('Could not read a question file.');
-			}
-			$question = parse_question_markdown($contents, $mediaCatalog);
-			if (basename($path) !== $question['id'] . '.md' || isset($questions[$question['id']])) {
-				throw new RuntimeException('Question IDs must be unique and match their filenames.');
-			}
-			$questions[$question['id']] = array(
-				'status' => $status,
-				'path' => $path,
-				'question' => $question,
-			);
-		}
-	}
-	return $questions;
-}
-
-function question_preview(array $question)
-{
-	echo "Quiz-master preview (private)\n";
-	echo "ID: " . $question['id'] . "\n";
-	echo "Title: " . $question['title'] . "\n\n";
-	echo $question['body'] . "\n\n";
-	echo "Hints:\n";
-	foreach ($question['hints'] as $hint) {
-		echo "- " . $hint . "\n";
-	}
-	echo "Answer: " . $question['answer'] . "\n";
-	echo "Media: " . ($question['media'] ? implode(', ', $question['media']) : 'none') . "\n";
-}
-
 if ($argc !== 3 || !in_array($argv[1], array('validate', 'preview', 'publish'), true)
 	|| !preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/D', $argv[2])) {
 	fwrite(STDERR, "Usage: php tools/questions.php validate|preview|publish <question-id>\n");
@@ -97,28 +53,18 @@ if ($argc !== 3 || !in_array($argv[1], array('validate', 'preview', 'publish'), 
 
 try {
 	$directories = question_authoring_dirs();
-	$questions = question_authoring_files($directories, $mediaCatalog);
 	$id = $argv[2];
-	if (!isset($questions[$id])) {
-		throw new RuntimeException('Question ID was not found in drafts or published content.');
-	}
-	$entry = $questions[$id];
+	$entry = find_question_file($id, $directories, $mediaCatalog);
 
 	if ($argv[1] === 'validate') {
 		echo "Question " . $id . " is valid.\n";
 	} elseif ($argv[1] === 'preview') {
-		question_preview($entry['question']);
+		echo question_preview_text($entry['question']);
 	} elseif ($entry['status'] !== 'draft') {
 		throw new RuntimeException('Only draft questions can be published.');
 	} else {
 		$destination = $directories['published'] . DIRECTORY_SEPARATOR . $id . '.md';
-		if (file_exists($destination) || is_link($destination) || !@link($entry['path'], $destination)) {
-			throw new RuntimeException('Could not publish; the destination exists or safe publication is unavailable.');
-		}
-		if (!@unlink($entry['path'])) {
-			@unlink($destination);
-			throw new RuntimeException('Could not complete publication; the draft was retained.');
-		}
+		publish_question_file($entry['path'], $destination);
 		echo "Question " . $id . " was published to the private release queue.\n";
 	}
 } catch (Throwable $e) {
