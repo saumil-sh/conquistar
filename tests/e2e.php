@@ -56,7 +56,7 @@ if (!mkdir($sessionDirectory, 0700)) {
 
 $capturePath = $runtimeDirectory . '/mail.jsonl';
 file_put_contents($capturePath, '');
-$root = realpath(__DIR__ . '/..');
+$root = realpath(__DIR__ . '/../php');
 $baseUrl = 'http://127.0.0.1:' . $port . '/';
 $server = null;
 $db = null;

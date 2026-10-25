@@ -31,7 +31,7 @@ class Mail
         if (getenv('APP_ENV') === 'test') {
             $testDatabase = getenv('TEST_DB_NAME');
             $capturePath = getenv('TEST_MAIL_CAPTURE');
-            $runtimeDirectory = realpath(__DIR__ . '/../tests/.runtime');
+            $runtimeDirectory = realpath(__DIR__ . '/../../tests/.runtime');
             if (PHP_SAPI !== 'cli-server'
                 || !defined('DBNAME')
                 || !is_string($testDatabase)

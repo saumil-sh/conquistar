@@ -1,6 +1,6 @@
 <?php
-require_once(__DIR__ . '/../includes/question-format.php');
-$mediaCatalog = require(__DIR__ . '/../includes/media-catalog.php');
+require_once(__DIR__ . '/../php/includes/question-format.php');
+$mediaCatalog = require(__DIR__ . '/../php/includes/media-catalog.php');
 
 function question_authoring_check($condition, $message)
 {
