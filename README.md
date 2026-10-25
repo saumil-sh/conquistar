@@ -63,6 +63,10 @@ sent. `SITE_NAME` sets the name shown in the menu, titles, and emails (default:
 `Conquistar`). `HINTS_URL` is optional; when set, the menu and dashboard link to
 it.
 
+Email is sent with PHP's `mail()`, which needs a working `sendmail` on the
+server. Shared hosting usually provides one. Elsewhere, install `msmtp` and
+`msmtp-mta` and put your SMTP account in `~/.msmtprc` (`chmod 600`).
+
 `schema.sql` is the canonical schema for a fresh database. It includes the final columns introduced by the Phase 2 migrations
 and the leaderboard index, plus the member login counter and unique account
 indexes; do not apply the upgrade migrations on top of it.
