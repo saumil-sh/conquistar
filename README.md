@@ -101,3 +101,33 @@ Use one `id`, `title`, and `answer`; repeat `hint` or `media` as needed. Image
 references must use an ID in `includes/media-catalog.php`, and HTML or external
 image URLs are rejected. This format is deliberately limited; the existing 23
 HTML questions and their media are unchanged until the later content migration.
+
+Keep authored files outside the web document root. Set
+`QUESTION_CONTENT_DIR` to a private directory with `drafts/` and `published/`
+subdirectories, and set `QUESTION_WEB_ROOT` to the actual document root. For
+example:
+
+```sh
+export QUESTION_CONTENT_DIR="$HOME/conquistar-private"
+export QUESTION_WEB_ROOT="/path/to/the/actual/document-root"
+mkdir -p "$QUESTION_CONTENT_DIR/drafts" "$QUESTION_CONTENT_DIR/published"
+chmod 700 "$QUESTION_CONTENT_DIR" "$QUESTION_CONTENT_DIR/drafts" "$QUESTION_CONTENT_DIR/published"
+```
+
+Save the example as `$QUESTION_CONTENT_DIR/drafts/sample-lunar.md`, then run:
+
+```sh
+php tools/questions.php validate sample-lunar
+php tools/questions.php preview sample-lunar
+php tools/questions.php publish sample-lunar
+```
+
+Preview is terminal-only and includes the answer and hints for the quiz master.
+Publishing validates the file and moves it into the private release queue;
+the current player flow continues to serve the existing HTML questions until
+the later content migration. No Markdown answers or drafts are served publicly.
+
+The database-independent checks are `php tests/test_db_guard_test.php`,
+`php tests/question_format_test.php`, and
+`php tests/question_workflow_test.php`. The end-to-end suite is separate because
+it requires the isolated local test database described above.

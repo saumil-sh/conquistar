@@ -23,6 +23,12 @@ if (!ctype_digit((string) $port) || (int) $port < 1024 || (int) $port > 65535) {
 	fwrite(STDERR, "TEST_HTTP_PORT must be a local TCP port between 1024 and 65535.\n");
 	exit(2);
 }
+$portProbe = @stream_socket_server('tcp://127.0.0.1:' . (int) $port, $portError, $portMessage);
+if (!$portProbe) {
+	fwrite(STDERR, "TEST_HTTP_PORT is already in use or unavailable; choose another local port.\n");
+	exit(2);
+}
+fclose($portProbe);
 
 $runtimeDirectory = __DIR__ . '/.runtime';
 if (file_exists($runtimeDirectory)) {
