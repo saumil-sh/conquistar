@@ -108,7 +108,5 @@ require('layout/header.php');
 			<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
 		  <center>Your IP address is being logged for security reasons.</center>
 		</div>
-<script src="js/jquery.js"></script>
-<script src="js/bootstrap.min.js"></script>
 		<?php endif; ?>
 <?php require('layout/footer.php'); ?>
