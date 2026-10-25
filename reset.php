@@ -7,59 +7,46 @@ if( $user->is_logged_in() ){ header('Location: memberpage.php'); exit; }
 if(isset($_POST['submit'])){
 	$email = is_string($_POST['email'] ?? null) ? $_POST['email'] : '';
 
-	//email validation
-	if(!filter_var($email, FILTER_VALIDATE_EMAIL)){
-	    $error[] = 'Please enter a valid email address';
+	if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+		$error[] = 'Please enter a valid email address';
 	} else {
-		$stmt = $db->prepare('SELECT email FROM members WHERE email = :email');
-		$stmt->execute(array(':email' => $email));
-		$row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-		if(empty($row['email'])){
-			$error[] = 'Email provided is not on recognised.';
-		}
-
-	}
-
-	//if no errors have been created carry on
-	if(!isset($error)){
-
-		//create the reset code
-		$token = bin2hex(random_bytes(32));
-
 		try {
+			$clientIp = is_string($_SERVER['REMOTE_ADDR'] ?? null) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
+			$canSend = rate_limit_allow($db, 'reset-ip', $clientIp, 5, 3600);
+			if ($canSend) {
+				$canSend = rate_limit_allow($db, 'reset-email', strtolower(trim($email)), 3, 3600);
+			}
 
-			$stmt = $db->prepare("UPDATE members SET resetToken = :token, resetComplete = 'No', resetExpiresAt = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE email = :email");
-			$stmt->execute(array(
-				':email' => $row['email'],
-				':token' => $token
-			));
+			if ($canSend) {
+				$stmt = $db->prepare('SELECT memberID, email FROM members WHERE email = :email');
+				$stmt->execute(array(':email' => $email));
+				$row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-			//send email
-			$to = $row['email'];
-			$subject = "Password Reset";
-			$body = "<p>Someone requested that the password be reset.</p>
-			<p>If this was a mistake, just ignore this email and nothing will happen.</p>
-			<p>To reset your password, visit the following address: <a href='".DIR."resetPassword.php?key=$token'>".DIR."resetPassword.php?key=$token</a></p>";
+				if ($row) {
+					$token = bin2hex(random_bytes(32));
+					$stmt = $db->prepare("UPDATE members SET resetToken = :token, resetComplete = 'No', resetExpiresAt = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE memberID = :member_id");
+					$stmt->execute(array(':member_id' => $row['memberID'], ':token' => $token));
 
-			$mail = new Mail();
-			$mail->setFrom(SITEEMAIL);
-			$mail->addAddress($to);
-			$mail->subject($subject);
-			$mail->body($body);
-			$mail->send();
+					$resetUrl = h(DIR . 'resetPassword.php?key=' . rawurlencode($token));
+					$body = "<p>Someone requested that the password be reset.</p>
+					<p>If this was a mistake, just ignore this email and nothing will happen.</p>
+					<p>To reset your password, visit the following address: <a href='" . $resetUrl . "'>" . $resetUrl . "</a></p>";
 
-			//redirect to index page
-			header('Location: login.php?action=reset');
-			exit;
-
-		//else catch the exception and show the error.
-		} catch(PDOException $e) {
-		    $error[] = $e->getMessage();
+					$mail = new Mail();
+					$mail->setFrom(SITEEMAIL);
+					$mail->addAddress($row['email']);
+					$mail->subject('Password Reset');
+					$mail->body($body);
+					$mail->send();
+				}
+			}
+		} catch (Throwable $e) {
+			error_log($e->getMessage());
 		}
 
+		header('Location: login.php?action=reset');
+		exit;
 	}
-
 }
 
 //define page title

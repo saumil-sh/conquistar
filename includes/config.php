@@ -54,8 +54,25 @@ define("DBUSER", getenv("DB_USER") ?: "");
 define("DBPASS", getenv("DB_PASSWORD") ?: "");
 define('DBNAME','test');
 
-//application address
-define('DIR','http://localhost:8000/'); //May need modification
+// Email links use this configured origin, never the request Host header.
+$appUrl = getenv('APP_URL');
+if ($appUrl === false || $appUrl === '') {
+	$appUrl = 'http://localhost:8000/';
+}
+$appUrlParts = parse_url($appUrl);
+if (!filter_var($appUrl, FILTER_VALIDATE_URL)
+	|| !is_array($appUrlParts)
+	|| !isset($appUrlParts['scheme'], $appUrlParts['host'])
+	|| $appUrlParts['host'] === ''
+	|| !in_array(strtolower($appUrlParts['scheme']), array('http', 'https'), true)
+	|| isset($appUrlParts['user'])
+	|| isset($appUrlParts['pass'])
+	|| isset($appUrlParts['query'])
+	|| isset($appUrlParts['fragment'])) {
+	http_response_code(500);
+	exit('Application URL configuration is invalid.');
+}
+define('DIR', rtrim($appUrl, '/') . '/');
 define('SITEEMAIL','samdon97@gmail.com');
 
 try {
@@ -76,6 +93,41 @@ try {
 	error_log($e->getMessage());
 	http_response_code(500);
 	exit('Database connection unavailable.');
+}
+
+function rate_limit_allow(PDO $db, $bucket, $subject, $limit, $windowSeconds) {
+	$now = time();
+	$key = hash('sha256', $bucket . "\0" . $subject);
+	$db->beginTransaction();
+
+	try {
+		$cleanup = $db->prepare('DELETE FROM request_limits WHERE window_started_at < :expired_before LIMIT 100');
+		$cleanup->execute(array(':expired_before' => $now - 86400));
+
+		$insert = $db->prepare('INSERT IGNORE INTO request_limits (rate_key, window_started_at, request_count) VALUES (:key, :started, 0)');
+		$insert->execute(array(':key' => $key, ':started' => $now));
+
+		$select = $db->prepare('SELECT window_started_at, request_count FROM request_limits WHERE rate_key = :key FOR UPDATE');
+		$select->execute(array(':key' => $key));
+		$row = $select->fetch(PDO::FETCH_ASSOC);
+		if (!$row) {
+			throw new RuntimeException('Rate limit state could not be loaded.');
+		}
+
+		$resetWindow = (int) $row['window_started_at'] <= $now - $windowSeconds;
+		$started = $resetWindow ? $now : (int) $row['window_started_at'];
+		$count = $resetWindow ? 1 : min((int) $row['request_count'] + 1, $limit + 1);
+		$update = $db->prepare('UPDATE request_limits SET window_started_at = :started, request_count = :count WHERE rate_key = :key');
+		$update->execute(array(':started' => $started, ':count' => $count, ':key' => $key));
+
+		$db->commit();
+		return $count <= $limit;
+	} catch (Throwable $e) {
+		if ($db->inTransaction()) {
+			$db->rollBack();
+		}
+		throw $e;
+	}
 }
 
 //include the user class, pass in the database connection

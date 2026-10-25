@@ -10,17 +10,20 @@ if(isset($_POST['submit'])){
 	$password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
 	$passwordConfirm = is_string($_POST['passwordConfirm'] ?? null) ? $_POST['passwordConfirm'] : '';
 	$institute = is_string($_POST['ins'] ?? null) ? $_POST['ins'] : '';
+	$clientIp = is_string($_SERVER['REMOTE_ADDR'] ?? null) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
+	$canRegister = rate_limit_allow($db, 'activation-ip', $clientIp, 5, 3600);
+	$accountExists = false;
 
 	//very basic validation
 	if(strlen($username) < 3){
 		$error[] = 'Username is too short.';
-	} else {
+	} elseif ($canRegister) {
 		$stmt = $db->prepare('SELECT username FROM members WHERE username = :username');
 		$stmt->execute(array(':username' => $username));
 		$row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 		if(!empty($row['username'])){
-			$error[] = 'Username provided is already in use.';
+			$accountExists = true;
 		}
 
 	}
@@ -46,19 +49,29 @@ if(isset($_POST['submit'])){
 	if(!filter_var($email, FILTER_VALIDATE_EMAIL)){
 	    $error[] = 'Please enter a valid email address';
 	} else {
-		$stmt = $db->prepare('SELECT email FROM members WHERE email = :email');
-		$stmt->execute(array(':email' => $email));
-		$row = $stmt->fetch(PDO::FETCH_ASSOC);
+		if ($canRegister) {
+			$canRegister = rate_limit_allow($db, 'activation-email', strtolower(trim($email)), 3, 3600);
+		}
 
-		if(!empty($row['email'])){
-			$error[] = 'Email provided is already in use.';
+		if ($canRegister) {
+			$stmt = $db->prepare('SELECT email FROM members WHERE email = :email');
+			$stmt->execute(array(':email' => $email));
+			$row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+			if(!empty($row['email'])){
+				$accountExists = true;
+			}
 		}
 
 	}
 
-
 	//if no errors have been created carry on
 	if(!isset($error)){
+		if (!$canRegister || $accountExists) {
+			header('Location: registerpage.php?action=joined');
+			exit;
+		}
+
 		$stmt = $db->prepare('SELECT max(memberID) as nid FROM members');
 		$stmt->execute();
 		$row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -74,30 +87,7 @@ if(isset($_POST['submit'])){
 		//create the activation code
 		$activasion = bin2hex(random_bytes(32));
 		try {
-			function getUserIP()
-						{
-							$client  = @$_SERVER['HTTP_CLIENT_IP'];
-							$forward = @$_SERVER['HTTP_X_FORWARDED_FOR'];
-							$remote  = $_SERVER['REMOTE_ADDR'];
-
-							if(filter_var($client, FILTER_VALIDATE_IP))
-							{
-								$ip = $client;
-							}
-							elseif(filter_var($forward, FILTER_VALIDATE_IP))
-							{
-								$ip = $forward;
-							}
-							else
-							{
-								$ip = $remote;
-							}
-
-							return $ip;
-						}
-
-
-						$userip = getUserIP();
+			$userip = $clientIp;
 			
 			date_default_timezone_set('Europe/Berlin');
 			$now = date("Y-m-d H:i:s");
@@ -114,15 +104,14 @@ if(isset($_POST['submit'])){
 				':inst' => $institute,
 				':time' => $now,
 			));
-			$id=$nid;
-			#$id = $db->lastInsertId('memberID');
+			$id = $nid;
 
 			//send email
-			echo "Senidng mail";
 			$to = $email;
 			$subject = "Registration Confirmation";
+			$activationUrl = h(DIR . 'activate.php?x=' . rawurlencode((string) $id) . '&y=' . rawurlencode($activasion));
 			$body = "<p>Thank you for registering for Conquistar 2020</p>
-			<p>To activate your account, please click on this link: <a href='".DIR."activate.php?x=$id&y=$activasion'>".DIR."activate.php?x=$id&y=$activasion</a></p>
+			<p>To activate your account, please click on this link: <a href='" . $activationUrl . "'>" . $activationUrl . "</a></p>
 			<p>Regards Saumil.</p>";
 
 			$mail = new Mail();
@@ -137,9 +126,10 @@ if(isset($_POST['submit'])){
 			header('Location: registerpage.php?action=joined');
 			exit;
 
-		//else catch the exception and show the error.
-		} catch(PDOException $e) {
-		    $error[] = $e->getMessage();
+		} catch (Throwable $e) {
+			error_log($e->getMessage());
+			header('Location: registerpage.php?action=joined');
+			exit;
 		}
 
 	}
@@ -175,7 +165,7 @@ require('layout/header.php');
 
 				//if action is joined show sucess
 				if(isset($_GET['action']) && $_GET['action'] == 'joined'){
-					echo "<div class='alert alert-success'>Registration successful!</div>";
+					echo "<div class='alert alert-success'>If registration can be completed with those details, you will receive an activation link.</div>";
 				}
 				?>
 

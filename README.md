@@ -22,6 +22,11 @@ server/PHP configuration before request parsing and restart all PHP workers;
 reduce exposure but are not a substitute for the fixed PHP release. The app's
 actual PHP version and cPanel settings must be verified on the server.
 
+Set `APP_URL` to the trusted absolute base URL used in activation and password
+reset emails (for example, `https://example.org/`). Do not derive it from the
+incoming request host. Before deployment, review and apply the SQL scripts in
+`migrations/` against a verified backup; the application does not run them.
+
 Sources: [PHP security advisory](https://www.php.net/archive/2026.php#2026-10-21-5)
 and [session upload-progress advisory](https://www.php.net/archive/2026.php#2026-10-23-1).
 

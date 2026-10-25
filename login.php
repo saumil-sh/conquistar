@@ -9,15 +9,20 @@ if(isset($_POST['submit'])){
 
 	$username = is_string($_POST['username'] ?? null) ? $_POST['username'] : '';
 	$password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
+	$clientIp = is_string($_SERVER['REMOTE_ADDR'] ?? null) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
+	$canLogin = rate_limit_allow($db, 'login-ip', $clientIp, 20, 900);
+	if ($canLogin) {
+		$canLogin = rate_limit_allow($db, 'login-user', strtolower(trim($username)), 10, 900);
+	}
 
-	if($user->login($username,$password)){
+	if($canLogin && $user->login($username,$password)){
 		$stmt = $db->prepare('UPDATE members SET logincount = logincount + 1 WHERE username = :username');
 		$stmt->execute(array(':username' => $username));
 		header('Location: memberpage.php');
 		exit;
 	
 	} else {
-		$error[] = 'Wrong username or password or your account has not been activated.';
+		$error[] = 'Unable to sign in. Check your username and password.';
 	}
 
 }//end if submit
