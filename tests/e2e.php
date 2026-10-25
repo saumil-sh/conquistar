@@ -56,9 +56,11 @@ $memberIds = array();
 $username = 'e2e' . bin2hex(random_bytes(5));
 $registeredMemberId = null;
 $questionTouched = false;
+$questionLevelOneTouched = false;
 $testDataPrepared = false;
 $originalEventOpen = null;
 $eventStateTouched = false;
+$closeEventTriggerCreated = false;
 $exitCode = 0;
 
 function e2e_check($condition, $message)
@@ -282,6 +284,29 @@ try {
 	e2e_check((int) $state->fetchColumn() === 1, 'Answer replay advanced the player again.');
 	e2e_check(strpos($replayResponse['body'], 'Wrong Answer') !== false, 'Answer replay was not rejected.');
 
+	$stmt = $db->prepare('INSERT INTO questions (qID, Answer) VALUES (1, :answer)');
+	$stmt->execute(array(':answer' => $testAnswerHash));
+	$questionLevelOneTouched = true;
+	$triggerName = 'e2e_close_event_on_answerlog';
+	$triggerCheck = $db->prepare('SELECT COUNT(*) FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE() AND TRIGGER_NAME = :trigger_name');
+	$triggerCheck->execute(array(':trigger_name' => $triggerName));
+	e2e_check((int) $triggerCheck->fetchColumn() === 0, 'Remove the leftover event-close test trigger before retrying.');
+	$db->exec('CREATE TRIGGER e2e_close_event_on_answerlog BEFORE INSERT ON answerlog FOR EACH ROW UPDATE event_state SET is_open = 0 WHERE singleton_id = 1');
+	$closeEventTriggerCreated = true;
+	$response = e2e_request($baseUrl, 'process.php', 'GET', array(), $cookie);
+	$midRequestClose = e2e_request($baseUrl, 'process.php', 'POST', array(
+		'csrf_token' => e2e_csrf($response['body']),
+		'ans' => 'testanswer',
+	), $cookie);
+	e2e_check($midRequestClose['status'] === 200 && strpos($midRequestClose['body'], 'The event is closed.') !== false, 'The event closing during answer processing was not reported.');
+	e2e_check(strpos($midRequestClose['body'], '<form action="process.php" method="post">') === false, 'An event closed mid-request still rendered an answer form.');
+	$state->execute(array(':id' => $registeredMemberId));
+	e2e_check((int) $state->fetchColumn() === 1, 'An answer advanced after the event closed during the request.');
+	$db->exec('DROP TRIGGER e2e_close_event_on_answerlog');
+	$closeEventTriggerCreated = false;
+	$eventUpdate->execute(array(':is_open' => 1));
+	e2e_check((int) $db->query('SELECT is_open FROM event_state WHERE singleton_id = 1')->fetchColumn() === 1, 'Could not reopen the test event after the mid-request close.');
+
 	$response = e2e_request($baseUrl, 'media.php?file=fb', 'GET', array(), $cookie);
 	e2e_check($response['status'] === 403, 'Media was exposed before its level.');
 	$unauthenticatedMedia = e2e_request($baseUrl, 'media.php?file=fb');
@@ -387,6 +412,14 @@ try {
 		proc_terminate($server);
 		proc_close($server);
 	}
+	if ($db instanceof PDO && $closeEventTriggerCreated) {
+		try {
+			$db->exec('DROP TRIGGER e2e_close_event_on_answerlog');
+		} catch (Throwable $e) {
+			fwrite(STDERR, "Test trigger cleanup failed; inspect only the isolated test database.\n");
+			$exitCode = 1;
+		}
+	}
 	if ($db instanceof PDO && $eventStateTouched && $originalEventOpen !== null) {
 		try {
 			$restoreEvent = $db->prepare('UPDATE event_state SET is_open = :is_open WHERE singleton_id = 1');
@@ -415,6 +448,9 @@ try {
 			$db->exec('DELETE FROM request_limits');
 			if ($questionTouched) {
 				$db->exec('DELETE FROM questions WHERE qID = 0');
+			}
+			if ($questionLevelOneTouched) {
+				$db->exec('DELETE FROM questions WHERE qID = 1');
 			}
 		} catch (Throwable $e) {
 			fwrite(STDERR, "Test database cleanup failed; inspect only the isolated test database.\n");

@@ -83,6 +83,7 @@
                         exit;
                     }
                     if (!game_event_is_open($db)) {
+                        $eventOpen = false;
                         echo "The event is closed.";
                     } else {
                         echo "The game state changed. Reload before trying again.";
