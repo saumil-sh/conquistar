@@ -70,8 +70,8 @@ require('layout/header.php');
 	<p>This permanently deletes your account, progress, and answer history.</p>
 	<form method="post">
 		<?= csrf_field() ?>
-		<button class="btn btn-danger" type="submit" name="confirm_delete" value="1">Delete my account</button>
-		<a class="btn btn-default" href="memberpage.php">Cancel</a>
+		<button class="btn-danger" type="submit" name="confirm_delete" value="1">Delete my account</button>
+		<a role="button" class="secondary" href="memberpage.php">Cancel</a>
 	</form>
 </main>
 <?php require('layout/footer.php'); ?>

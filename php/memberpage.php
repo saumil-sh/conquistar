@@ -21,11 +21,7 @@ $isQuizMaster = is_quiz_master($db, $_SESSION['memberID'] ?? null);
 require('layout/header.php');
 ?>
 
-<div class="container">
-
-	<div class="row">
-
-	    <div class="col-xs-12 col-sm-8 col-md-6 col-sm-offset-2 col-md-offset-3">
+<main class="container">
 				<h2>Welcome <?php echo h($_SESSION['username']); ?></h2>
 				<?php if ($hasQuestions): ?>
 				<p>Progress: <?php echo h($solvedQuestions); ?> of <?php echo h($totalQuestions); ?> puzzles solved.</p>
@@ -43,7 +39,7 @@ require('layout/header.php');
 					<?php elseif ($isComplete): ?>
 						You have completed every puzzle. Congratulations!
 					<?php else: ?>
-						<a class="btn btn-primary" href="process.php">Continue to puzzle <?php echo h($level + 1); ?></a>
+						<a role="button" href="process.php">Continue to puzzle <?php echo h($level + 1); ?></a>
 					<?php endif; ?>
 				</p>
 				<?php endif; ?>
@@ -58,15 +54,11 @@ require('layout/header.php');
 				<h3><a href="leaderboard.php">Leaderboard</a></h3>
 				<form method="post" action="logout.php">
 					<?= csrf_field() ?>
-					<button type="submit" class="btn btn-link">Logout</button>
+					<button type="submit" class="outline">Logout</button>
 				</form>
 				<hr>
 
-		</div>
-	</div>
-
-
-</div>
+</main>
 
 <?php 
 //include header template

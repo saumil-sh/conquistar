@@ -36,7 +36,7 @@ require('layout/header.php');
 	<h1>Manage event</h1>
 	<p>Current status: <strong><?php echo $eventOpen ? 'Open' : 'Closed'; ?></strong></p>
 	<?php if (!$hasQuestions): ?>
-		<p class="alert alert-warning">No player questions are available. Keep the event closed until new content is ready.</p>
+		<p class="alert alert-danger">No player questions are available. Keep the event closed until new content is ready.</p>
 	<?php endif; ?>
 	<?php if (isset($_GET['updated'])): ?>
 		<p class="alert alert-success">Event status updated.</p>
@@ -45,7 +45,7 @@ require('layout/header.php');
 	<form method="post">
 		<?= csrf_field() ?>
 		<input type="hidden" name="event_action" value="<?php echo $eventOpen ? 'close' : 'open'; ?>">
-		<button class="btn btn-primary" type="submit"><?php echo $eventOpen ? 'Close event' : 'Open event'; ?></button>
+		<button type="submit"><?php echo $eventOpen ? 'Close event' : 'Open event'; ?></button>
 	</form>
 	<?php endif; ?>
 	<p><a href="memberpage.php">Back to dashboard</a></p>

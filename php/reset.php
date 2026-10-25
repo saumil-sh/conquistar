@@ -62,41 +62,18 @@ $title = 'Reset Account';
 //include header template
 require('layout/header.php');
 ?>
-
-<div class="container">
-
-	<div class="row">
-
-	    <div class="col-xs-12 col-sm-8 col-md-6 col-sm-offset-2 col-md-offset-3">
-			<form role="form" method="post" action="" autocomplete="off">
-				<?= csrf_field() ?>
-				<h2>Reset Password</h2>
-				<p><a href='login.php'>Back to login page</a></p>
-				<hr>
-
-				<?php
-				//check for any errors
-				if(isset($error)){
-					foreach($error as $error){
-						echo '<p class="alert-danger">'.h($error).'</p>';
-					}
-				}
-				?>
-
-				<div class="form-group">
-					<input type="email" name="email" id="email" class="form-control input-lg" placeholder="Email" value="" tabindex="1">
-				</div>
-
-				<hr>
-				<div class="row">
-					<div class="col-xs-6 col-md-6"><input type="submit" name="submit" value="Sent Reset Link" class="btn btn-primary btn-block btn-lg" tabindex="2"></div>
-				</div>
-			</form>
-		</div>
-	</div>
-
-
-</div>
+<main class="container">
+<form method="post" action="" autocomplete="off">
+	<?= csrf_field() ?>
+	<h2>Reset Password</h2>
+	<p><a href="login.php">Back to login page</a></p>
+	<?php if (isset($error)): foreach ($error as $message): ?>
+	<p class="alert alert-danger"><?= h($message) ?></p>
+	<?php endforeach; endif; ?>
+	<input type="email" name="email" id="email" placeholder="Email" aria-label="Email">
+	<input type="submit" name="submit" value="Send Reset Link">
+</form>
+</main>
 
 <?php
 //include header template

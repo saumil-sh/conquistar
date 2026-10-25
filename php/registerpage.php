@@ -135,72 +135,33 @@ $title = SITENAME . ' | Register';
 //include header template
 require('layout/header.php');
 ?>
-
-
-<div class="container">
-
-	<div class="row">
-
-	    <div class="col-xs-12 col-sm-8 col-md-6 col-sm-offset-2 col-md-offset-3">
-			<form role="form" method="post" action="" autocomplete="off">
-				<?= csrf_field() ?>
-				<h2>Please Sign Up</h2>
-				<p>Already a member? <a href='login.php'>Login</a></p>
-				<hr>
-
-				<?php
-				//check for any errors
-				if(isset($error)){
-					foreach($error as $error){
-						echo '<p class="alert-danger">'.h($error).'</p>';
-					}
-				}
-
-				//if action is joined show sucess
-				if(isset($_GET['action']) && $_GET['action'] == 'joined'){
-					echo "<div class='alert alert-success'>If registration can be completed with those details, you will receive an activation link.</div>";
-				}
-				if(isset($_GET['action']) && $_GET['action'] == 'deleted'){
-					echo "<div class='alert alert-success'>Your account and answer history have been deleted.</div>";
-				}
-				?>
-
-				<div class="form-group">
-					<input type="text" name="username" id="username" class="form-control input-lg" placeholder="User Name" value="<?php if(isset($error)){ echo h($_POST['username'] ?? ''); } ?>" tabindex="1">
-				</div>
-				<div class="form-group">
-					<input type="email" name="email" id="email" class="form-control input-lg" placeholder="Email Address" value="<?php if(isset($error)){ echo h($_POST['email'] ?? ''); } ?>" tabindex="2">
-				</div>
-				<div class="form-group">
-					<input type="text" name="ins" id="ins" class="form-control input-lg" placeholder="Institution"  tabindex="3">
-				</div>
-				<div class="row">
-					<div class="col-xs-6 col-sm-6 col-md-6">
-						<div class="form-group">
-							<input type="password" name="password" id="password" class="form-control input-lg" placeholder="Password" tabindex="4">
-						</div>
-					</div>
-					<div class="col-xs-6 col-sm-6 col-md-6">
-						<div class="form-group">
-							<input type="password" name="passwordConfirm" id="passwordConfirm" class="form-control input-lg" placeholder="Confirm Password" tabindex="5">
-						</div>
-					</div>
-				</div>
-
-				<div class="row">
-					<div class="col-xs-6 col-md-6"><input type="submit" name="submit" value="Register" class="btn btn-primary btn-block btn-lg" tabindex="6"></div>
-				</div>
-			</form>
-			<h3>General Instructions</h3>
-			<ul>
-			    <li>Do <b>NOT</b> use special characters, spaces, etc. in your username. Please use only letters and numbers.</li>
-			    <li>After sign up you will receive a verification link on the  email registered. Verify by clicking on the link and then login. <u>You won't be able to login unless you have verified your account.</u></li>
-			    <li>Also, try to use a desktop or laptops as much as possible. Some levels might require it.</li>
-			</ul>
-		</div>
-	</div>
-
-</div>
+<main class="container">
+<form method="post" action="" autocomplete="off">
+	<?= csrf_field() ?>
+	<h2>Please Sign Up</h2>
+	<p>Already a member? <a href="login.php">Login</a></p>
+	<?php if (isset($error)): foreach ($error as $message): ?>
+	<p class="alert alert-danger"><?= h($message) ?></p>
+	<?php endforeach; endif; ?>
+	<?php if (($_GET['action'] ?? '') === 'joined'): ?>
+	<p class="alert alert-success">If registration can be completed with those details, you will receive an activation link.</p>
+	<?php elseif (($_GET['action'] ?? '') === 'deleted'): ?>
+	<p class="alert alert-success">Your account and answer history have been deleted.</p>
+	<?php endif; ?>
+	<input type="text" name="username" id="username" placeholder="User Name" aria-label="User Name" value="<?php if (isset($error)) { echo h($_POST['username'] ?? ''); } ?>">
+	<input type="email" name="email" id="email" placeholder="Email Address" aria-label="Email Address" value="<?php if (isset($error)) { echo h($_POST['email'] ?? ''); } ?>">
+	<input type="text" name="ins" id="ins" placeholder="Institution" aria-label="Institution">
+	<input type="password" name="password" id="password" placeholder="Password" aria-label="Password">
+	<input type="password" name="passwordConfirm" id="passwordConfirm" placeholder="Confirm Password" aria-label="Confirm Password">
+	<input type="submit" name="submit" value="Register">
+</form>
+<h3>General Instructions</h3>
+<ul>
+	<li>Do <b>NOT</b> use special characters, spaces, etc. in your username. Please use only letters and numbers.</li>
+	<li>After sign up you will receive a verification link on the email registered. Verify by clicking on the link and then login. <u>You won't be able to login unless you have verified your account.</u></li>
+	<li>Also, try to use a desktop or laptops as much as possible. Some levels might require it.</li>
+</ul>
+</main>
 
 <?php
 //include header template
