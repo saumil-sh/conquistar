@@ -171,7 +171,7 @@ try {
 		throw new RuntimeException('Could not connect to the explicitly named local test database.');
 	}
 
-	foreach (array('members', 'questions', 'answerlog', 'request_limits') as $table) {
+	foreach (array('members', 'questions', 'answerlog', 'request_limits', 'hint_uses') as $table) {
 		$count = (int) $db->query('SELECT COUNT(*) FROM ' . $table)->fetchColumn();
 		e2e_check($count === 0, 'Use a fresh, isolated test database with empty ' . $table . '.');
 	}
@@ -187,7 +187,7 @@ try {
 	e2e_check((int) $db->query('SELECT is_open FROM event_state WHERE singleton_id = 1')->fetchColumn() === 1, 'Could not open the test event.');
 
 	$testAnswerHash = password_hash('testanswer', PASSWORD_BCRYPT);
-	$stmt = $db->prepare('INSERT INTO questions (qID, Answer) VALUES (0, :answer)');
+	$stmt = $db->prepare("INSERT INTO questions (qID, Answer, hint) VALUES (0, :answer, 'Test-only <hint>')");
 	$stmt->execute(array(':answer' => $testAnswerHash));
 	$questionTouched = true;
 
@@ -304,6 +304,20 @@ try {
 	$eventUpdate->execute(array(':is_open' => 1));
 	e2e_check((int) $db->query('SELECT is_open FROM event_state WHERE singleton_id = 1')->fetchColumn() === 1, 'Could not reopen the test event.');
 	$response = e2e_request($baseUrl, 'process.php', 'GET', array(), $cookie);
+	e2e_check(strpos($response['body'], 'Show hint') !== false && strpos($response['body'], 'Test-only &lt;hint&gt;') === false, 'The hint was not hidden behind a button.');
+	foreach (array(1, 2) as $attempt) {
+		$hintResponse = e2e_request($baseUrl, 'process.php', 'POST', array(
+			'csrf_token' => e2e_csrf($response['body']),
+			'action' => 'hint',
+		), $cookie);
+		e2e_check($attempt === 2 || $hintResponse['status'] === 302, 'Asking for a hint did not redirect.');
+	}
+	$response = e2e_request($baseUrl, 'process.php', 'GET', array(), $cookie);
+	e2e_check(strpos($response['body'], 'Test-only &lt;hint&gt;') !== false && strpos($response['body'], 'Show hint') === false, 'The used hint was not shown escaped.');
+	$hintState = $db->prepare('SELECT m.hints_used, h.used_at FROM members m JOIN hint_uses h ON h.memberID = m.memberID AND h.qID = 0 WHERE m.memberID = :id');
+	$hintState->execute(array(':id' => $registeredMemberId));
+	$hintUse = $hintState->fetch();
+	e2e_check($hintUse && (int) $hintUse['hints_used'] === 1 && abs(strtotime($hintUse['used_at'] . ' UTC') - time()) < 120, 'The hint use was not recorded once in UTC.');
 	$response = e2e_request($baseUrl, 'process.php', 'POST', array(
 		'csrf_token' => e2e_csrf($response['body']),
 		'ans' => 'testanswer',
@@ -493,6 +507,7 @@ try {
 			if ($memberIds) {
 				$ids = implode(',', array_map('intval', array_unique($memberIds)));
 				$db->exec('DELETE FROM answerlog WHERE memberID IN (' . $ids . ')');
+				$db->exec('DELETE FROM hint_uses WHERE memberID IN (' . $ids . ')');
 				$db->exec('DELETE FROM members WHERE memberID IN (' . $ids . ')');
 			}
 			$db->exec('DELETE FROM request_limits');

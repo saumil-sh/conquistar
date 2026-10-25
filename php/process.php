@@ -32,6 +32,23 @@ echo '<main class="container">';
 		$hasCurrentQuestion = $questionPath !== '' && is_file($questionPath);
 		$isComplete = $totalQuestions > 0 && $questionLevel !== false && $questionLevel >= $totalQuestions;
 		$eventOpen = game_event_is_open($db);
+		$hintStmt = $db->prepare('SELECT q.hint, h.used_at FROM questions q LEFT JOIN hint_uses h ON h.qID = q.qID AND h.memberID = :member_id WHERE q.qID = :level');
+		$hintStmt->execute(array(':member_id' => $res['memberID'], ':level' => $res['level']));
+		$hintRow = $hasCurrentQuestion ? $hintStmt->fetch() : false;
+		$hint = $hintRow && is_string($hintRow['hint']) && $hintRow['hint'] !== '' ? $hintRow['hint'] : null;
+		$hintShown = $hint !== null && $hintRow['used_at'] !== null;
+    if ($eventOpen && $hint !== null && !$hintShown && ($_POST['action'] ?? '') === 'hint') {
+		// Records the hint only if the player is still on this level and the event is open.
+		$db->beginTransaction();
+		$use = $db->prepare("INSERT IGNORE INTO hint_uses (memberID, qID, used_at) SELECT memberID, level, UTC_TIMESTAMP(6) FROM members WHERE memberID = :member_id AND level = :level AND active = 'Yes' AND EXISTS (SELECT 1 FROM event_state WHERE singleton_id = 1 AND is_open = 1)");
+		$use->execute(array(':member_id' => $res['memberID'], ':level' => $res['level']));
+		if ($use->rowCount() === 1) {
+			$db->prepare('UPDATE members SET hints_used = hints_used + 1 WHERE memberID = :member_id')->execute(array(':member_id' => $res['memberID']));
+		}
+		$db->commit();
+		header('Location: process.php');
+		exit;
+    }
     if($eventOpen && $hasCurrentQuestion && is_string($_POST['ans'] ?? null) && $_POST['ans'] !== '')
 		{
             $answer = $_POST['ans'];
@@ -87,6 +104,15 @@ echo '<main class="container">';
         echo '<p>This puzzle is currently unavailable.</p>';
     }
 ?>
+<?php if ($eventOpen && $hasCurrentQuestion && $hintShown): ?>
+<section class="hint-content"><strong>Hint:</strong> <?= h($hint) ?></section>
+<?php elseif ($eventOpen && $hasCurrentQuestion && $hint !== null): ?>
+<form action="process.php" method="post">
+	<?= csrf_field() ?>
+	<input type="hidden" name="action" value="hint">
+	<button type="submit" class="secondary">Show hint (counts against you on ties)</button>
+</form>
+<?php endif; ?>
 <?php if ($eventOpen && $hasCurrentQuestion): ?>
 <form action="process.php" method="post">
 	<?= csrf_field() ?>

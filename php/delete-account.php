@@ -38,6 +38,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
 		$answers = $db->prepare('DELETE FROM answerlog WHERE memberID = :member_id');
 		$answers->execute(array(':member_id' => $memberId));
+		$hints = $db->prepare('DELETE FROM hint_uses WHERE memberID = :member_id');
+		$hints->execute(array(':member_id' => $memberId));
 		$delete = $db->prepare("DELETE FROM members WHERE memberID = :member_id AND active = 'Yes'");
 		$delete->execute(array(':member_id' => $memberId));
 		if ($delete->rowCount() !== 1) {

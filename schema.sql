@@ -16,6 +16,7 @@ CREATE TABLE members (
 	institute VARCHAR(100) NOT NULL,
 	lastsolvetime DATETIME(6) NOT NULL,
 	logincount INT(11) NOT NULL DEFAULT 0,
+	hints_used INT(11) NOT NULL DEFAULT 0,
 	quiz_master TINYINT UNSIGNED NOT NULL DEFAULT 0,
 	PRIMARY KEY (memberID),
 	UNIQUE KEY members_username (username),
@@ -26,8 +27,16 @@ CREATE TABLE members (
 CREATE TABLE questions (
 	qID INT(11) NOT NULL,
 	Answer VARCHAR(255) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+	hint TEXT NULL,
 	PRIMARY KEY (qID)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE hint_uses (
+	memberID INT(11) NOT NULL,
+	qID INT(11) NOT NULL,
+	used_at DATETIME(6) NOT NULL,
+	PRIMARY KEY (memberID, qID)
+) ENGINE=InnoDB DEFAULT CHARSET=ascii;
 
 CREATE TABLE answerlog (
 	logID BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

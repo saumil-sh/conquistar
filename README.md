@@ -79,6 +79,7 @@ against a verified backup; the application does not run them:
 7. `phase3-13-drop-answerlog-member-time.sql`
 8. `phase4-17-event-state.sql`
 9. `phase4-18-quiz-master-role.sql`
+10. `phase5-19-hints.sql`
 
 Before step 4, verify `members.memberID` is a non-null unique/primary key and
 that existing activation/reset tokens fit within 64 characters. The migration
@@ -145,6 +146,23 @@ web-server access rules in `php/accessible/.htaccess` and
 deny direct access to both directories there as well. If the repository root
 is ever served instead of `php/`, the `tests/.htaccess` and `tools/.htaccess`
 rules deny direct web access to those folders.
+
+## Adding a live question
+
+Players see level `N` from `php/questions/q_N.html` (levels start at 0). Store
+its answer as a hash of the lowercase answer without spaces, with an optional
+hint that players can reveal once:
+
+```sh
+php -r 'echo password_hash("jupiter", PASSWORD_DEFAULT), PHP_EOL;'
+```
+
+```sql
+INSERT INTO questions (qID, Answer, hint) VALUES (0, '<hash>', 'Named after a Roman god.');
+```
+
+Each revealed hint is recorded in `hint_uses` with a UTC time and counted in
+`members.hints_used`.
 
 ## Authoring questions
 
