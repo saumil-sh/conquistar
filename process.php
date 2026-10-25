@@ -44,33 +44,40 @@
 		$stmt = $db->prepare('SELECT level,email,username,memberID FROM members WHERE username = :username');
 		$stmt->execute(array(':username' => $_SESSION['username']));
         $res = $stmt->fetch();
-        if($res["memberID"]!=1) {header('Location: memberpage.php'); exit;} //Comment to start process
         $_SESSION["userlevel"]=$res["level"];
     if(is_string($_POST['ans'] ?? null) && $_POST['ans'] !== '')
         {
             $answer = $_POST['ans'];
-            $uIP=$_SERVER['REMOTE_ADDR'];
-            $logstmt = $db->prepare('INSERT INTO answerlog (memberID,answer,TimeOfAnswer,ip) VALUES (:memid,:ans,ADDTIME(NOW(),"5:30"),:ipadd)');
-			$logstmt->execute(array(
-				':memid' => $res["memberID"],
-				':ans' => $answer,
-				':ipadd' => $uIP,
-			));
-            $gans=str_replace(" ","",$answer);
-            $gans=strtolower($gans);
-            $stmt = $db->prepare('SELECT qID,Answer FROM questions WHERE qID = :level');
-            $stmt->execute(array(':level' => $res['level']));
-            $res2 = $stmt->fetch();
-            
-            if($genpass->password_verify($gans,$res2["Answer"]) == 1)
-            {
-                $stmt = $db->prepare("UPDATE members SET level = :level + 1, lastsolvetime = ADDTIME(NOW(), '5:30:00') WHERE username = :username");
-                $stmt->execute(array(':level' => $res['level'], ':username' => $_SESSION['username']));
-                header('Location: process.php');
-                exit;
+            $clientIp = is_string($_SERVER['REMOTE_ADDR'] ?? null) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
+            $canGuess = rate_limit_allow($db, 'guess-member', (string) $res['memberID'], 15, 60);
+            if ($canGuess) {
+                $canGuess = rate_limit_allow($db, 'guess-ip', $clientIp, 60, 60);
             }
-            else
+
+            if (!$canGuess) {
+                echo "Too many guesses. Please wait before trying again.";
+            } else {
+                $logstmt = $db->prepare('INSERT INTO answerlog (memberID,answer,TimeOfAnswer,ip) VALUES (:memid,:ans,ADDTIME(NOW(),"5:30"),:ipadd)');
+				$logstmt->execute(array(
+					':memid' => $res["memberID"],
+					':ans' => $answer,
+					':ipadd' => $clientIp,
+				));
+
+                $gans = strtolower(str_replace(' ', '', $answer));
+                $stmt = $db->prepare('SELECT Answer FROM questions WHERE qID = :level');
+                $stmt->execute(array(':level' => $res['level']));
+                $res2 = $stmt->fetch();
+
+                if ($res2 && $genpass->password_verify($gans, $res2['Answer'])) {
+                    $stmt = $db->prepare("UPDATE members SET level = level + 1, lastsolvetime = ADDTIME(NOW(), '5:30:00') WHERE memberID = :member_id AND active = 'Yes' AND level = :level");
+                    $stmt->execute(array(':member_id' => $res['memberID'], ':level' => $res['level']));
+                    header('Location: process.php');
+                    exit;
+                }
+
                 echo "Wrong Answer";
+            }
         }
     echo "<br/>";
     echo "<h2 align='center'>Welcome <b>".h($res['username'])."</b><br/><br/></h2>";
