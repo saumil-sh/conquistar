@@ -3,9 +3,14 @@
 $title = 'Conquistar | Dashboard';
 if(!$user->is_logged_in()){ header('Location: login.php'); exit; }
 
-$stmt = $db->prepare('SELECT level,email FROM members WHERE memberID = :member_id');
+$stmt = $db->prepare("SELECT level,email FROM members WHERE memberID = :member_id AND active = 'Yes'");
 $stmt->execute(array(':member_id' => $_SESSION['memberID']));
 $res = $stmt->fetch();
+if (!$res) {
+	$user->logout();
+	header('Location: login.php');
+	exit;
+}
 $level = max(0, (int) $res['level']);
 $questionPages = glob(__DIR__ . '/questions/q_*.html') ?: array();
 $totalQuestions = count(array_filter($questionPages, function ($path) {

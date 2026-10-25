@@ -111,6 +111,30 @@ function e2e_csrf($html)
 	return $matches[1];
 }
 
+function e2e_location(array $response)
+{
+	foreach ($response['headers'] as $header) {
+		if (stripos($header, 'Location:') === 0) {
+			return trim(substr($header, strlen('Location:')));
+		}
+	}
+	return '';
+}
+
+function e2e_login($baseUrl, $username, $password)
+{
+	$response = e2e_request($baseUrl, 'login.php');
+	$cookie = $response['cookie'];
+	$response = e2e_request($baseUrl, 'login.php', 'POST', array(
+		'csrf_token' => e2e_csrf($response['body']),
+		'username' => $username,
+		'password' => $password,
+		'submit' => 'Login',
+	), $cookie);
+	e2e_check($response['status'] === 302, 'Login failed while preparing the stale-session test.');
+	return $response['cookie'];
+}
+
 function e2e_mail_messages($path)
 {
 	$messages = array();
@@ -331,7 +355,30 @@ try {
 	e2e_check(strpos($leaderboard['body'], 'Your rank: 1') !== false, 'Deterministic tie rank was incorrect.');
 	e2e_check(strpos($leaderboard['body'], $inactiveName) === false, 'Inactive player appeared on the leaderboard.');
 	e2e_check(strpos($leaderboard['body'], $username) < strpos($leaderboard['body'], $tieName), 'Equal scores were not ordered deterministically.');
-	echo "Registration, activation, login, reset, answer replay, media access, and rankings passed.\n";
+
+	$setInactive = $db->prepare("UPDATE members SET active = 'No' WHERE memberID = :id");
+	$setInactive->execute(array(':id' => $registeredMemberId));
+	$inactiveSession = e2e_request($baseUrl, 'memberpage.php', 'GET', array(), $cookie);
+	e2e_check($inactiveSession['status'] === 302 && e2e_location($inactiveSession) === 'login.php', 'An inactive member session was not redirected to login.');
+	e2e_check($inactiveSession['cookie'] === '', 'An inactive member session was not cleared.');
+	$reactivate = $db->prepare("UPDATE members SET active = 'Yes' WHERE memberID = :id");
+	$reactivate->execute(array(':id' => $registeredMemberId));
+
+	$deleteCookie = e2e_login($baseUrl, $username, 'new-password');
+	$staleCookie = e2e_login($baseUrl, $username, 'new-password');
+	$deleteForm = e2e_request($baseUrl, 'delete-account.php', 'GET', array(), $deleteCookie);
+	$deleted = e2e_request($baseUrl, 'delete-account.php', 'POST', array(
+		'csrf_token' => e2e_csrf($deleteForm['body']),
+		'confirm_delete' => '1',
+	), $deleteCookie);
+	e2e_check($deleted['status'] === 302 && e2e_location($deleted) === 'registerpage.php?action=deleted', 'Account deletion did not complete in the stale-session test.');
+	$staleSession = e2e_request($baseUrl, 'memberpage.php', 'GET', array(), $staleCookie);
+	e2e_check($staleSession['status'] === 302 && e2e_location($staleSession) === 'login.php', 'A deleted account session was not redirected to login.');
+	e2e_check($staleSession['cookie'] === '', 'A deleted account session was not cleared.');
+	$remainingMember = $db->prepare('SELECT COUNT(*) FROM members WHERE memberID = :id');
+	$remainingMember->execute(array(':id' => $registeredMemberId));
+	e2e_check((int) $remainingMember->fetchColumn() === 0, 'The stale-session test account was not deleted.');
+	echo "Registration, activation, login, reset, answer, media access, rankings, and stale-session rejection passed.\n";
 } catch (Throwable $e) {
 	fwrite(STDERR, "End-to-end test failed: " . $e->getMessage() . "\n");
 	$exitCode = 1;

@@ -35,9 +35,20 @@
   </div>
 </nav>';
 
-		$stmt = $db->prepare('SELECT level,email,username,memberID FROM members WHERE username = :username');
-		$stmt->execute(array(':username' => $_SESSION['username']));
+		$memberId = filter_var($_SESSION['memberID'] ?? null, FILTER_VALIDATE_INT);
+		if ($memberId === false || $memberId < 1) {
+			$user->logout();
+			header('Location: login.php');
+			exit;
+		}
+		$stmt = $db->prepare("SELECT level,email,username,memberID FROM members WHERE memberID = :member_id AND active = 'Yes'");
+		$stmt->execute(array(':member_id' => $memberId));
         $res = $stmt->fetch();
+		if (!$res) {
+			$user->logout();
+			header('Location: login.php');
+			exit;
+		}
         $_SESSION["userlevel"]=$res["level"];
         $eventOpen = game_event_is_open($db);
     if($eventOpen && is_string($_POST['ans'] ?? null) && $_POST['ans'] !== '')

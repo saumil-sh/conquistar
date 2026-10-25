@@ -60,10 +60,23 @@ class User {
 	}
 
 	public function is_logged_in(){
-		if(isset($_SESSION['loggedin']) && $_SESSION['loggedin'] == true){
-			return true;
+		if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
+			return false;
 		}
-		else {return false;}
+
+		$memberId = filter_var($_SESSION['memberID'] ?? null, FILTER_VALIDATE_INT);
+		if ($memberId === false || $memberId < 1) {
+			$this->logout();
+			return false;
+		}
+
+		$stmt = $this->_db->prepare("SELECT memberID FROM members WHERE memberID = :member_id AND active = 'Yes'");
+		$stmt->execute(array(':member_id' => $memberId));
+		if (!$stmt->fetchColumn()) {
+			$this->logout();
+			return false;
+		}
+		return true;
 	}
 
 }
