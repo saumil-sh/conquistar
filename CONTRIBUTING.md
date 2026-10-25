@@ -39,7 +39,7 @@ Other server types and non-loopback bindings still require `APP_URL`.
 Database tests require an explicitly named `test_*` database (bare `test` is
 rejected) and matching `TEST_DB_NAME` and `DB_NAME`. The end-to-end runner also
 requires a loopback database host. Set `DB_NAME` for the application
-connection rather than editing the schema or migration files.
+connection rather than editing the schema file.
 
 To run end-to-end checks, first create an isolated, empty `test_*` database and
 apply `schema.sql` to it. Set `DB_NAME` and `TEST_DB_NAME` to that same test
@@ -79,51 +79,12 @@ actual PHP version and cPanel settings must be verified on the server.
 Sources: [PHP security advisory](https://www.php.net/archive/2026.php#2026-10-21-5)
 and [session upload-progress advisory](https://www.php.net/archive/2026.php#2026-10-23-1).
 
-## Database schema and upgrades
+## Database schema
 
-`schema.sql` is the canonical schema for a fresh database. It includes the final columns introduced by the Phase 2 migrations
-and the leaderboard index, plus the member login counter and unique account
-indexes; do not apply the upgrade migrations on top of it.
-
-For an existing database, review the SQL scripts in `migrations/` in this order
-against a verified backup; the application does not run them:
-
-1. `phase2-06-activation-expiry.sql`
-2. `phase2-07-reset-expiry.sql`
-3. `phase2-08-request-limits.sql`
-4. `phase2-09-member-columns.sql`
-5. `phase3-11-leaderboard-index.sql`
-6. `phase3-12-member-login-indexes.sql`
-7. `phase3-13-drop-answerlog-member-time.sql`
-8. `phase4-17-event-state.sql`
-9. `phase4-18-quiz-master-role.sql`
-10. `phase5-19-hints.sql`
-11. `phase5-20-leaderboard-hints-index.sql`
-
-Before step 4, verify `members.memberID` is a non-null unique/primary key and
-that existing activation/reset tokens fit within 64 characters. The migration
-sets null levels to zero before enforcing `NOT NULL DEFAULT 0`.
-Before step 5, verify the index does not already exist. No live database schema
-has been verified, and no migration has been run against a real database.
-Before step 6, verify `logincount` and the named unique indexes are absent, and
-check for duplicate usernames and emails; resolve duplicates manually before
-adding either unique key. If any of these already exist, verify their
-definitions and skip the corresponding addition rather than rerunning it. The
-fresh schema omits `answerlog_member_time`; step 7 drops that named index only
-if it exists, leaving every other index unchanged. The event begins closed in a
-fresh schema and in step 8; a quiz master must open it before players can
-continue.
-Step 9 gives every existing account the non-privileged default. After verifying
-the intended operator's account, grant quiz-master access directly to that
-member ID with a controlled database change; the application never grants this
-role through registration. Access is checked against the database on every
-request.
-
-The canonical schema describes the tables used by the current application:
-`members`, `questions`, `answerlog`, `hint_uses`, `request_limits`, and
-`event_state`. The
-schema is the single fresh-install reference and does not drop or alter any
-existing table or data.
+`schema.sql` is the only database setup. It creates the tables `members`,
+`questions`, `answerlog`, `hint_uses`, `request_limits`, and `event_state`, and
+starts with the event closed. There are no upgrade scripts: when you change the
+schema, update `schema.sql` and recreate your local and test databases from it.
 
 ## Question authoring tool (work in progress)
 

@@ -1,5 +1,4 @@
--- Canonical schema for a fresh database. Do not run on an existing database.
--- Existing databases need the reviewed upgrade migrations documented in README.md.
+-- Database schema for a fresh install. Do not run on a database that already has these tables.
 
 CREATE TABLE members (
 	memberID INT(11) NOT NULL AUTO_INCREMENT,
