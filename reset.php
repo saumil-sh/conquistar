@@ -37,15 +37,22 @@ if(isset($_POST['submit'])){
 					$mail->addAddress($row['email']);
 					$mail->subject('Password Reset');
 					$mail->body($body);
-					$mail->send();
+					if (!$mail->send()) {
+						http_response_code(503);
+						$error[] = 'We could not send the reset email. Please try again later.';
+					}
 				}
 			}
-		} catch (Throwable $e) {
+		} catch (PDOException $e) {
 			error_log($e->getMessage());
+			http_response_code(500);
+			$error[] = 'We could not process the request. Please try again later.';
 		}
 
-		header('Location: login.php?action=reset');
-		exit;
+		if (!isset($error)) {
+			header('Location: login.php?action=reset');
+			exit;
+		}
 	}
 }
 
@@ -83,7 +90,7 @@ require('layout/header.php');
 							echo "<h2 class='bg-success'>Your account is now active you may now log in.</h2>";
 							break;
 						case 'reset':
-							echo "<h2 class='bg-success'>Please check your inbox for a reset link.</h2>";
+							echo "<h2 class='bg-success'>If an account matches, a reset link will be sent.</h2>";
 							break;
 					}
 				}

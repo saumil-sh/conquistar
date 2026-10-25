@@ -12,20 +12,10 @@ if(isset($_POST['submit'])){
 	$institute = is_string($_POST['ins'] ?? null) ? $_POST['ins'] : '';
 	$clientIp = is_string($_SERVER['REMOTE_ADDR'] ?? null) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
 	$canRegister = rate_limit_allow($db, 'activation-ip', $clientIp, 250, 3600);
-	$accountExists = false;
 
 	//very basic validation
 	if(strlen($username) < 3){
 		$error[] = 'Username is too short.';
-	} elseif ($canRegister) {
-		$stmt = $db->prepare('SELECT username FROM members WHERE username = :username');
-		$stmt->execute(array(':username' => $username));
-		$row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-		if(!empty($row['username'])){
-			$accountExists = true;
-		}
-
 	}
 
 	if(strlen($password) < 3){
@@ -52,53 +42,64 @@ if(isset($_POST['submit'])){
 		if ($canRegister) {
 			$canRegister = rate_limit_allow($db, 'activation-email', strtolower(trim($email)), 3, 3600);
 		}
-
-		if ($canRegister) {
-			$stmt = $db->prepare('SELECT email FROM members WHERE email = :email');
-			$stmt->execute(array(':email' => $email));
-			$row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-			if(!empty($row['email'])){
-				$accountExists = true;
-			}
-		}
-
 	}
 
 	//if no errors have been created carry on
 	if(!isset($error)){
-		if (!$canRegister || $accountExists) {
+		if (!$canRegister) {
 			header('Location: registerpage.php?action=joined');
 			exit;
 		}
 
-		//hash the password
-		$hashedpassword = $user->password_hash($password, PASSWORD_BCRYPT);
-
-		//create the activation code
-		$activasion = bin2hex(random_bytes(32));
 		try {
-			$userip = $clientIp;
-			
-			//insert into database with a prepared statement
-			$stmt = $db->prepare("INSERT INTO members (username,password,email,active,activationExpiresAt,ip,institute,lastsolvetime) VALUES (:username, :password, :email, :active, DATE_ADD(NOW(), INTERVAL 1 DAY), :ip, :inst, ADDTIME(NOW(), '5:30:00'))");
-			$stmt->execute(array(
-				':username' => $username,
-				':password' => $hashedpassword,
-				':email' => $email,
-				':active' => $activasion,
-				':ip' => $userip,
-				':inst' => $institute,
-			));
-			$id = $db->lastInsertId();
-			if ($id === false || $id === '0') {
-				throw new RuntimeException('A member ID was not generated.');
+			$stmt = $db->prepare('SELECT memberID, username, email, active FROM members WHERE username = :username OR email = :email');
+			$stmt->execute(array(':username' => $username, ':email' => $email));
+			$accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$inactiveAccount = null;
+
+			foreach ($accounts as $account) {
+				if (strcasecmp($account['username'], $username) === 0
+					&& strcasecmp($account['email'], $email) === 0
+					&& strcasecmp($account['active'], 'Yes') !== 0) {
+					$inactiveAccount = $account;
+					break;
+				}
 			}
 
-			//send email
-			$to = $email;
-			$subject = "Registration Confirmation";
-			$activationUrl = h(DIR . 'activate.php?x=' . rawurlencode((string) $id) . '&y=' . rawurlencode($activasion));
+			if ($accounts && (!$inactiveAccount || count($accounts) !== 1)) {
+				header('Location: registerpage.php?action=joined');
+				exit;
+			}
+
+			$activation = bin2hex(random_bytes(32));
+			if ($inactiveAccount) {
+				$id = $inactiveAccount['memberID'];
+				$to = $inactiveAccount['email'];
+				$stmt = $db->prepare("UPDATE members SET active = :active, activationExpiresAt = DATE_ADD(NOW(), INTERVAL 1 DAY) WHERE memberID = :member_id AND active <> 'Yes'");
+				$stmt->execute(array(':active' => $activation, ':member_id' => $id));
+				if ($stmt->rowCount() !== 1) {
+					header('Location: registerpage.php?action=joined');
+					exit;
+				}
+			} else {
+				$hashedpassword = $user->password_hash($password, PASSWORD_BCRYPT);
+				$stmt = $db->prepare("INSERT INTO members (username,password,email,active,activationExpiresAt,ip,institute,lastsolvetime) VALUES (:username, :password, :email, :active, DATE_ADD(NOW(), INTERVAL 1 DAY), :ip, :inst, ADDTIME(NOW(), '5:30:00'))");
+				$stmt->execute(array(
+					':username' => $username,
+					':password' => $hashedpassword,
+					':email' => $email,
+					':active' => $activation,
+					':ip' => $clientIp,
+					':inst' => $institute,
+				));
+				$id = $db->lastInsertId();
+				if ($id === false || $id === '0') {
+					throw new RuntimeException('A member ID was not generated.');
+				}
+				$to = $email;
+			}
+
+			$activationUrl = h(DIR . 'activate.php?x=' . rawurlencode((string) $id) . '&y=' . rawurlencode($activation));
 			$body = "<p>Thank you for registering for Conquistar 2020</p>
 			<p>To activate your account, please click on this link: <a href='" . $activationUrl . "'>" . $activationUrl . "</a></p>
 			<p>Regards Saumil.</p>";
@@ -106,19 +107,20 @@ if(isset($_POST['submit'])){
 			$mail = new Mail();
 			$mail->setFrom(SITEEMAIL);
 			$mail->addAddress($to);
-			$mail->subject($subject);
+			$mail->subject('Registration Confirmation');
 			$mail->body($body);
-			$mail->send();
-			//print("Mail sent!");
+			if (!$mail->send()) {
+				http_response_code(503);
+				$error[] = 'We could not send the activation email. Please try again later.';
+			} else {
+				header('Location: registerpage.php?action=joined');
+				exit;
+			}
 
-			//redirect to index page
-			header('Location: registerpage.php?action=joined');
-			exit;
-
-		} catch (Throwable $e) {
+		} catch (PDOException $e) {
 			error_log($e->getMessage());
-			header('Location: registerpage.php?action=joined');
-			exit;
+			http_response_code(500);
+			$error[] = 'We could not process the request. Please try again later.';
 		}
 
 	}

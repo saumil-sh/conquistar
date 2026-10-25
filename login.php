@@ -62,7 +62,7 @@ require('layout/header.php');
 							echo "<h2 class='bg-success'>Your account is now active you may now log in.</h2>";
 							break;
 						case 'reset':
-							echo "<h2 class='bg-success'>Please check your inbox for a reset link.</h2>";
+							echo "<h2 class='bg-success'>If an account matches, a reset link will be sent.</h2>";
 							break;
 						case 'resetAccount':
 							echo "<h2 class='bg-success'>Password changed, you may now login.</h2>";
