@@ -49,10 +49,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !csrf_is_valid()) {
 date_default_timezone_set('Europe/Germany');
 
 //database credentials
-define('DBHOST','localhost');
+define('DBHOST', getenv("DB_HOST") ?: "localhost");
 define("DBUSER", getenv("DB_USER") ?: "");
 define("DBPASS", getenv("DB_PASSWORD") ?: "");
-define('DBNAME','test');
+define('DBNAME', getenv("DB_NAME") ?: "test");
 
 // Email links use this configured origin, never the request Host header.
 $appUrl = getenv('APP_URL');

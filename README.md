@@ -24,9 +24,12 @@ actual PHP version and cPanel settings must be verified on the server.
 
 Set `APP_URL` to the trusted absolute base URL used in activation and password
 reset emails (for example, `https://example.org/`). Do not derive it from the
-incoming request host. Before deployment, review and apply the SQL scripts in
-`migrations/` in this order against a verified backup; the application does not
-run them:
+incoming request host. `schema.sql` is the canonical schema for a fresh
+database. It includes the final columns introduced by the Phase 2 migrations
+and the leaderboard index; do not apply those migrations on top of it.
+
+For an existing database, review the SQL scripts in `migrations/` in this order
+against a verified backup; the application does not run them:
 
 1. `phase2-06-activation-expiry.sql`
 2. `phase2-07-reset-expiry.sql`
@@ -37,6 +40,19 @@ run them:
 Before step 4, verify `members.memberID` is a non-null unique/primary key and
 that existing activation/reset tokens fit within 64 characters. The migration
 sets null levels to zero before enforcing `NOT NULL DEFAULT 0`.
+Before step 5, verify the index does not already exist. No live database schema
+has been verified, and no migration has been run against a real database.
+
+The canonical schema describes the tables used by the current application:
+`members`, `questions`, `answerlog`, and `request_limits`. The obsolete schema
+dumps also described `levels` and `levelstats`; those tables are omitted here
+because the current application does not use them. This file does not drop or
+alter any existing table or data.
+
+Database tests must use an explicitly named `test` or `test_*` database. They
+refuse to run unless `TEST_DB_NAME` and `DB_NAME` match; the end-to-end runner
+also requires a loopback database host. Set `DB_NAME` for the application
+connection rather than editing the schema or migration files.
 
 The leaderboard includes active accounts only. It orders by highest level,
 then earliest solve time, then lowest member ID for a deterministic final tie.
