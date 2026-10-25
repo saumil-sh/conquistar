@@ -26,7 +26,7 @@
         <a class="nav-link" href="https://www.facebook.com/ConquistarHunt">Hints</a>
       </li>
     <li class="nav-item">
-        <a class="nav-link" href="leaderboard.php?user=' . h(rawurlencode($_SESSION['username'])) . '">Leaderboard</a>
+        <a class="nav-link" href="leaderboard.php">Leaderboard</a>
       </li>
     <li class="nav-item">
         <form method="post" action="logout.php">' . csrf_field() . '<button type="submit" class="nav-link btn btn-link">Logout</button></form>

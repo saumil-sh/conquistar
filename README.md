@@ -32,10 +32,16 @@ run them:
 2. `phase2-07-reset-expiry.sql`
 3. `phase2-08-request-limits.sql`
 4. `phase2-09-member-columns.sql`
+5. `phase3-11-leaderboard-index.sql`
 
 Before step 4, verify `members.memberID` is a non-null unique/primary key and
 that existing activation/reset tokens fit within 64 characters. The migration
 sets null levels to zero before enforcing `NOT NULL DEFAULT 0`.
+
+The leaderboard includes active accounts only. It orders by highest level,
+then earliest solve time, then lowest member ID for a deterministic final tie.
+It shows the first 50 players and, when you are signed in, your rank even if
+you are outside that list.
 
 Sources: [PHP security advisory](https://www.php.net/archive/2026.php#2026-10-21-5)
 and [session upload-progress advisory](https://www.php.net/archive/2026.php#2026-10-23-1).
