@@ -66,9 +66,8 @@ answer history in one transaction.
 
 The canonical schema describes the tables used by the current application:
 `members`, `questions`, `answerlog`, `request_limits`, and `event_state`. The
-obsolete schema dumps also described `levels` and `levelstats`; those tables
-are omitted here because the current application does not use them. This file
-does not drop or alter any existing table or data.
+schema is the single fresh-install reference and does not drop or alter any
+existing table or data.
 
 Database tests require an explicitly named `test_*` database (bare `test` is
 rejected) and matching `TEST_DB_NAME` and `DB_NAME`. The end-to-end runner also
