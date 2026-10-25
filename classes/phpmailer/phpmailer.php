@@ -1,6 +1,5 @@
 <?php
 require('smtp.php');
-require('pop3.php');
 
 class PhpMailerException extends \Exception
 {
