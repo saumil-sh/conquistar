@@ -97,18 +97,7 @@ require('layout/header.php');
 						foreach($error as $error){
 							echo '<p class="alert-danger">'.h($error).'</p>';
 						}
-					}
-
-					//check the action
-					switch ($_GET['action']) {
-						case 'active':
-							echo "<h2 class='alert-success'>Your account is now active you may now log in.</h2>";
-							break;
-						case 'reset':
-							echo "<h2 class='alert-success'>Please check your inbox for a reset link.</h2>";
-							break;
-					}
-					?>
+					}					?>
 
 					<div class="row">
 						<div class="col-xs-6 col-sm-6 col-md-6">

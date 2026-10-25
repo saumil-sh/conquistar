@@ -81,19 +81,6 @@ require('layout/header.php');
 						echo '<p class="alert-danger">'.h($error).'</p>';
 					}
 				}
-
-				if(isset($_GET['action'])){
-
-					//check the action
-					switch ($_GET['action']) {
-						case 'active':
-							echo "<h2 class='alert-success'>Your account is now active you may now log in.</h2>";
-							break;
-						case 'reset':
-							echo "<h2 class='alert-success'>If an account matches, a reset link will be sent.</h2>";
-							break;
-					}
-				}
 				?>
 
 				<div class="form-group">
