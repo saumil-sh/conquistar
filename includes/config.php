@@ -160,6 +160,6 @@ function rate_limit_allow(PDO $db, $bucket, $subject, $limit, $windowSeconds) {
 
 //include the user class, pass in the database connection
 include('classes/user.php');
-include('classes/phpmailer/mail.php');
+include('classes/mail.php');
 $user = new User($db);
 ?>
