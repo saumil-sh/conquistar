@@ -22,7 +22,6 @@ echo '<main class="container">';
 			header('Location: login.php');
 			exit;
 		}
-        $_SESSION["userlevel"]=$res["level"];
 		$questionPages = available_question_pages();
 		$totalQuestions = count($questionPages);
 		$questionLevel = filter_var($res['level'], FILTER_VALIDATE_INT);

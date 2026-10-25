@@ -16,8 +16,6 @@ if(isset($_POST['submit'])){
 	}
 
 	if($canLogin && $user->login($username,$password)){
-		$stmt = $db->prepare('UPDATE members SET logincount = logincount + 1 WHERE username = :username');
-		$stmt->execute(array(':username' => $username));
 		header('Location: memberpage.php');
 		exit;
 	

@@ -433,8 +433,8 @@ try {
 	$inactiveName = $username . 'inactive';
 	$peerPassword = password_hash('test-password', PASSWORD_BCRYPT);
 	$insertPeer = $db->prepare("INSERT INTO members
-		(username, password, email, active, resetComplete, level, ip, institute, lastsolvetime, logincount)
-		VALUES (:username, :password, :email, :active, 'No', :level, '127.0.0.1', 'Test institute', :solved, 0)");
+		(username, password, email, active, resetComplete, level, ip, institute, lastsolvetime)
+		VALUES (:username, :password, :email, :active, 'No', :level, '127.0.0.1', 'Test institute', :solved)");
 	foreach (array(array($tieName, 'Yes', 2, $player['lastsolvetime']), array($noHintName, 'Yes', 2, $laterSolve), array($inactiveName, 'No', 99, '2000-01-01 00:00:00')) as $peer) {
 		$insertPeer->execute(array(
 			':username' => $peer[0],
