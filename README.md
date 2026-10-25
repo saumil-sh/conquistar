@@ -54,8 +54,15 @@ actual PHP version and cPanel settings must be verified on the server.
 
 Set `APP_URL` to the trusted absolute base URL used in activation and password
 reset emails (for example, `https://example.org/`). Do not derive it from the
-incoming request host. `schema.sql` is the canonical schema for a fresh
-database. It includes the final columns introduced by the Phase 2 migrations
+incoming request host.
+
+Set `SITE_EMAIL` to the sender address for those emails; without a valid
+address, registration and password reset report that the email could not be
+sent. `SITE_NAME` sets the name shown in the menu, titles, and emails (default:
+`Conquistar`). `HINTS_URL` is optional; when set, the menu and dashboard link to
+it.
+
+`schema.sql` is the canonical schema for a fresh database. It includes the final columns introduced by the Phase 2 migrations
 and the leaderboard index, plus the member login counter and unique account
 indexes; do not apply the upgrade migrations on top of it.
 

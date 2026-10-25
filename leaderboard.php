@@ -2,12 +2,12 @@
 ?>
 
 <?php
-$title = 'Conquistar | Leaderboard';
+$title = SITENAME . ' | Leaderboard';
 require('layout/header.php');
 ?>
   
 <main class="container">
-  <h1>Conquistar 2020</h1>
+  <h1><?= h(SITENAME) ?></h1>
   <h2>Leaderboard</h2>
     
 

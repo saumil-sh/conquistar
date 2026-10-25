@@ -103,9 +103,8 @@ if(isset($_POST['submit'])){
 			}
 
 			$activationUrl = h(DIR . 'activate.php?x=' . rawurlencode((string) $id) . '&y=' . rawurlencode($activation));
-			$body = "<p>Thank you for registering for Conquistar 2020</p>
-			<p>To activate your account, please click on this link: <a href='" . $activationUrl . "'>" . $activationUrl . "</a></p>
-			<p>Regards Saumil.</p>";
+			$body = "<p>Thank you for registering for " . h(SITENAME) . ".</p>
+			<p>To activate your account, please click on this link: <a href='" . $activationUrl . "'>" . $activationUrl . "</a></p>";
 
 			$mail = new Mail();
 			$mail->setFrom(SITEEMAIL);
@@ -131,7 +130,7 @@ if(isset($_POST['submit'])){
 }
 
 //define page title
-$title = 'Conquistar 2020 - An online treasure hunt';
+$title = SITENAME . ' | Register';
 
 //include header template
 require('layout/header.php');
@@ -170,7 +169,7 @@ require('layout/header.php');
 					<input type="text" name="username" id="username" class="form-control input-lg" placeholder="User Name" value="<?php if(isset($error)){ echo h($_POST['username'] ?? ''); } ?>" tabindex="1">
 				</div>
 				<div class="form-group">
-					<input type="email" name="email" id="email" class="form-control input-lg" placeholder="Email Address, this will be used to contact the winner" value="<?php if(isset($error)){ echo h($_POST['email'] ?? ''); } ?>" tabindex="2">
+					<input type="email" name="email" id="email" class="form-control input-lg" placeholder="Email Address" value="<?php if(isset($error)){ echo h($_POST['email'] ?? ''); } ?>" tabindex="2">
 				</div>
 				<div class="form-group">
 					<input type="text" name="ins" id="ins" class="form-control input-lg" placeholder="Institution"  tabindex="3">
@@ -194,12 +193,8 @@ require('layout/header.php');
 			</form>
 			<h3>General Instructions</h3>
 			<ul>
-			    <li>Register with your IISER email IDs only as it will be officially used by us and Karavaan for contacting the winner.</li>
-			    <li>Teams can have <b>a maximum of 2 players</b>. You can also register individually.</li>
-			    <li> If playing as a team, register with one of your teammates' IISER ID. Further details about the other participant will be asked on that ID only.</li>
 			    <li>Do <b>NOT</b> use special characters, spaces, etc. in your username. Please use only letters and numbers.</li>
 			    <li>After sign up you will receive a verification link on the  email registered. Verify by clicking on the link and then login. <u>You won't be able to login unless you have verified your account.</u></li>
-			    <li>Non-IISER players can play but will not be eligible for prizes</li>
 			    <li>Also, try to use a desktop or laptops as much as possible. Some levels might require it.</li>
 			</ul>
 		</div>

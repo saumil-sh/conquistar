@@ -1,6 +1,6 @@
 <?php require('includes/config.php'); 
 //define page title
-$title = 'Conquistar | Dashboard';
+$title = SITENAME . ' | Dashboard';
 if(!$user->is_logged_in()){ header('Location: login.php'); exit; }
 
 $stmt = $db->prepare("SELECT level,email FROM members WHERE memberID = :member_id AND active = 'Yes'");
@@ -47,7 +47,9 @@ require('layout/header.php');
 					<?php endif; ?>
 				</p>
 				<?php endif; ?>
-				<p>Need a hint? Visit the <a href="https://www.facebook.com/ConquistarHunt" target="_blank" rel="noopener noreferrer">community hints</a>.</p>
+				<?php if (HINTSURL !== ''): ?>
+				<p>Need a hint? Visit the <a href="<?php echo h(HINTSURL); ?>" target="_blank" rel="noopener noreferrer">community hints</a>.</p>
+				<?php endif; ?>
 				<p>Account email: <?php echo h($res["email"]); ?></p>
 				<p><a href="delete-account.php">Delete my account</a></p>
 				<?php if ($isQuizMaster): ?>

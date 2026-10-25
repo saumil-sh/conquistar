@@ -101,7 +101,10 @@ if (!filter_var($appUrl, FILTER_VALIDATE_URL)
 	exit('Application URL configuration is invalid.');
 }
 define('DIR', rtrim($appUrl, '/') . '/');
-define('SITEEMAIL','samdon97@gmail.com');
+define('SITENAME', getenv('SITE_NAME') ?: 'Conquistar');
+// Activation and reset emails are only sent when SITE_EMAIL is a valid address.
+define('SITEEMAIL', getenv('SITE_EMAIL') ?: '');
+define('HINTSURL', getenv('HINTS_URL') ?: '');
 
 try {
 
