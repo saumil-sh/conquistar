@@ -29,6 +29,23 @@ function question_authoring_remove($path)
 	rmdir($path);
 }
 
+function question_authoring_command($contentRoot, $webRoot)
+{
+	$process = proc_open(array(PHP_BINARY, __DIR__ . '/../tools/questions.php', 'validate', 'sample-lunar'), array(
+		0 => array('file', '/dev/null', 'r'),
+		1 => array('pipe', 'w'),
+		2 => array('pipe', 'w'),
+	), $pipes, dirname(__DIR__), array(
+		'QUESTION_CONTENT_DIR' => $contentRoot,
+		'QUESTION_WEB_ROOT' => $webRoot,
+	));
+	question_authoring_check(is_resource($process), 'Could not start question validation command.');
+	$output = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
+	fclose($pipes[1]);
+	fclose($pipes[2]);
+	return array('status' => proc_close($process), 'output' => $output);
+}
+
 $valid = "---\nid: sample-lunar\ntitle: Sample clue\nanswer: Example answer\nhint: First hint\nhint: Second hint\nmedia: fb\n---\n# Sample clue\nFind the answer.\n\n![An example image](media:fb)\n";
 $runtimeBase = __DIR__ . '/.runtime';
 $createdRuntimeBase = false;
@@ -108,6 +125,12 @@ try {
 		question_authoring_check(strpos($e->getMessage(), $draftPath) !== false
 			&& strpos($e->getMessage(), $publishedPath) !== false, 'Duplicate-ID error omitted filenames.');
 	}
+
+	$fakeWebRoot = $workspace . '/fake-web';
+	mkdir($fakeWebRoot, 0700);
+	$insideRepository = question_authoring_command($workspace, $fakeWebRoot);
+	question_authoring_check($insideRepository['status'] !== 0
+		&& strpos($insideRepository['output'], 'outside the repository') !== false, 'Question storage inside the repository was accepted with a different web-root setting.');
 	echo "Question authoring checks passed.\n";
 } catch (Throwable $e) {
 	fwrite(STDERR, "Question authoring test failed: " . $e->getMessage() . "\n");

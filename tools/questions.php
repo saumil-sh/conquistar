@@ -21,11 +21,14 @@ function question_authoring_dirs()
 	}
 	$contentRoot = realpath($contentSetting);
 	$webRoot = realpath($webRootSetting);
-	if ($contentRoot === false || $webRoot === false || !is_dir($contentRoot) || !is_dir($webRoot)) {
+	$repositoryRoot = realpath(__DIR__ . '/..');
+	if ($contentRoot === false || $webRoot === false || $repositoryRoot === false
+		|| !is_dir($contentRoot) || !is_dir($webRoot)) {
 		throw new RuntimeException('Set QUESTION_CONTENT_DIR and QUESTION_WEB_ROOT to existing directories.');
 	}
-	if (question_path_is_inside($contentRoot, $webRoot)) {
-		throw new RuntimeException('Question files must be stored outside the web document root.');
+	if (question_path_is_inside($contentRoot, $repositoryRoot)
+		|| question_path_is_inside($contentRoot, $webRoot)) {
+		throw new RuntimeException('Question files must be stored outside the repository and web document root.');
 	}
 
 	$directories = array();

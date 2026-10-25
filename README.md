@@ -102,7 +102,9 @@ references must use an ID in `includes/media-catalog.php`, and HTML or external
 image URLs are rejected. This format is deliberately limited; the existing 23
 HTML questions and their media are unchanged until the later content migration.
 
-Keep authored files outside the web document root. Set
+Keep authored files outside both the repository and the web document root. The
+CLI enforces both boundaries; setting a different `QUESTION_WEB_ROOT` cannot
+make an in-repository folder private. Set
 `QUESTION_CONTENT_DIR` to a private directory with `drafts/` and `published/`
 subdirectories, and set `QUESTION_WEB_ROOT` to the actual document root. For
 example:
