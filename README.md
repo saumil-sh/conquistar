@@ -25,7 +25,17 @@ actual PHP version and cPanel settings must be verified on the server.
 Set `APP_URL` to the trusted absolute base URL used in activation and password
 reset emails (for example, `https://example.org/`). Do not derive it from the
 incoming request host. Before deployment, review and apply the SQL scripts in
-`migrations/` against a verified backup; the application does not run them.
+`migrations/` in this order against a verified backup; the application does not
+run them:
+
+1. `phase2-06-activation-expiry.sql`
+2. `phase2-07-reset-expiry.sql`
+3. `phase2-08-request-limits.sql`
+4. `phase2-09-member-columns.sql`
+
+Before step 4, verify `members.memberID` is a non-null unique/primary key and
+that existing activation/reset tokens fit within 64 characters. The migration
+sets null levels to zero before enforcing `NOT NULL DEFAULT 0`.
 
 Sources: [PHP security advisory](https://www.php.net/archive/2026.php#2026-10-21-5)
 and [session upload-progress advisory](https://www.php.net/archive/2026.php#2026-10-23-1).
