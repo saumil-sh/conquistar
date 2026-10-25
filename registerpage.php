@@ -33,7 +33,7 @@ if(isset($_POST['submit'])){
 		$error[] = 'Confirm password is too short.';
 	}
 
-	if($password != $passwordConfirm){
+	if($password !== $passwordConfirm){
 		$error[] = 'Passwords do not match.';
 	}
 	
