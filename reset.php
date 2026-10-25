@@ -78,7 +78,7 @@ require('layout/header.php');
 				//check for any errors
 				if(isset($error)){
 					foreach($error as $error){
-						echo '<p class="bg-danger">'.h($error).'</p>';
+						echo '<p class="alert-danger">'.h($error).'</p>';
 					}
 				}
 
@@ -87,10 +87,10 @@ require('layout/header.php');
 					//check the action
 					switch ($_GET['action']) {
 						case 'active':
-							echo "<h2 class='bg-success'>Your account is now active you may now log in.</h2>";
+							echo "<h2 class='alert-success'>Your account is now active you may now log in.</h2>";
 							break;
 						case 'reset':
-							echo "<h2 class='bg-success'>If an account matches, a reset link will be sent.</h2>";
+							echo "<h2 class='alert-success'>If an account matches, a reset link will be sent.</h2>";
 							break;
 					}
 				}
