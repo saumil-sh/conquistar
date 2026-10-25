@@ -11,7 +11,7 @@ if(isset($_POST['submit'])){
 	$passwordConfirm = is_string($_POST['passwordConfirm'] ?? null) ? $_POST['passwordConfirm'] : '';
 	$institute = is_string($_POST['ins'] ?? null) ? $_POST['ins'] : '';
 	$clientIp = is_string($_SERVER['REMOTE_ADDR'] ?? null) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
-	$canRegister = rate_limit_allow($db, 'activation-ip', $clientIp, 5, 3600);
+	$canRegister = rate_limit_allow($db, 'activation-ip', $clientIp, 250, 3600);
 	$accountExists = false;
 
 	//very basic validation

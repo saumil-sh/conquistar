@@ -51,7 +51,7 @@
             $clientIp = is_string($_SERVER['REMOTE_ADDR'] ?? null) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
             $canGuess = rate_limit_allow($db, 'guess-member', (string) $res['memberID'], 15, 60);
             if ($canGuess) {
-                $canGuess = rate_limit_allow($db, 'guess-ip', $clientIp, 60, 60);
+                $canGuess = rate_limit_allow($db, 'guess-ip', $clientIp, 750, 60);
             }
 
             if (!$canGuess) {

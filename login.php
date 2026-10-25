@@ -10,9 +10,9 @@ if(isset($_POST['submit'])){
 	$username = is_string($_POST['username'] ?? null) ? $_POST['username'] : '';
 	$password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
 	$clientIp = is_string($_SERVER['REMOTE_ADDR'] ?? null) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
-	$canLogin = rate_limit_allow($db, 'login-ip', $clientIp, 20, 900);
+	$canLogin = rate_limit_allow($db, 'login-ip', $clientIp, 300, 900);
 	if ($canLogin) {
-		$canLogin = rate_limit_allow($db, 'login-user', strtolower(trim($username)), 10, 900);
+		$canLogin = rate_limit_allow($db, 'login-user-ip', strtolower(trim($username)) . "\0" . $clientIp, 10, 900);
 	}
 
 	if($canLogin && $user->login($username,$password)){

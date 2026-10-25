@@ -12,7 +12,7 @@ if(isset($_POST['submit'])){
 	} else {
 		try {
 			$clientIp = is_string($_SERVER['REMOTE_ADDR'] ?? null) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
-			$canSend = rate_limit_allow($db, 'reset-ip', $clientIp, 5, 3600);
+			$canSend = rate_limit_allow($db, 'reset-ip', $clientIp, 250, 3600);
 			if ($canSend) {
 				$canSend = rate_limit_allow($db, 'reset-email', strtolower(trim($email)), 3, 3600);
 			}
