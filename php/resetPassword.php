@@ -5,7 +5,7 @@ if( $user->is_logged_in() ){ header('Location: memberpage.php'); exit; }
 
 $key = is_string($_GET['key'] ?? null) ? $_GET['key'] : '';
 $stmt = $db->prepare("SELECT memberID, resetToken FROM members WHERE resetToken = :token AND resetComplete = 'No' AND resetExpiresAt > NOW()");
-$stmt->execute(array(':token' => $key));
+$stmt->execute(array(':token' => hash('sha256', $key)));
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (empty($row['resetToken'])) {

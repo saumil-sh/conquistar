@@ -71,7 +71,7 @@ if(isset($_POST['submit'])){
 				$id = $inactiveAccount['memberID'];
 				$to = $inactiveAccount['email'];
 				$stmt = $db->prepare("UPDATE members SET active = :active, activationExpiresAt = DATE_ADD(NOW(), INTERVAL 1 DAY) WHERE memberID = :member_id AND active <> 'Yes'");
-				$stmt->execute(array(':active' => $activation, ':member_id' => $id));
+				$stmt->execute(array(':active' => hash('sha256', $activation), ':member_id' => $id));
 				if ($stmt->rowCount() !== 1) {
 					header('Location: registerpage.php?action=joined');
 					exit;
@@ -86,7 +86,7 @@ if(isset($_POST['submit'])){
 					':username' => $username,
 					':password' => $hashedpassword,
 					':email' => $email,
-					':active' => $activation,
+					':active' => hash('sha256', $activation),
 					':ip' => $clientIp,
 					':inst' => $institute,
 				));

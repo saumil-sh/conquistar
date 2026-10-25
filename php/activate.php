@@ -8,7 +8,7 @@ if (ctype_digit($memberID) && $memberID !== '' && $active !== '') {
 	$stmt = $db->prepare("UPDATE members SET active = 'Yes', activationExpiresAt = NULL WHERE memberID = :memberID AND active = :active AND activationExpiresAt > NOW()");
 	$stmt->execute(array(
 		':memberID' => $memberID,
-		':active' => $active,
+		':active' => hash('sha256', $active),
 	));
 
 	if ($stmt->rowCount() === 1) {

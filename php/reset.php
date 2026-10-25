@@ -25,7 +25,7 @@ if(isset($_POST['submit'])){
 				if ($row) {
 					$token = bin2hex(random_bytes(32));
 					$stmt = $db->prepare("UPDATE members SET resetToken = :token, resetComplete = 'No', resetExpiresAt = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE memberID = :member_id");
-					$stmt->execute(array(':member_id' => $row['memberID'], ':token' => $token));
+					$stmt->execute(array(':member_id' => $row['memberID'], ':token' => hash('sha256', $token)));
 
 					$resetUrl = h(DIR . 'resetPassword.php?key=' . rawurlencode($token));
 					$body = "<p>Someone requested that the password be reset.</p>

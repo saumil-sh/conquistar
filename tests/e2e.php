@@ -274,6 +274,7 @@ try {
 	$memberIds[] = $registeredMemberId;
 	$messages = e2e_mail_messages($capturePath);
 	e2e_check(count($messages) === 1 && preg_match('/activate\.php\?x=([0-9]+)&amp;y=([a-f0-9]{64})/', $messages[0]['body'], $activation), 'Registration activation email was not captured.');
+	e2e_check($member['active'] === hash('sha256', $activation[2]), 'The activation token was not stored as a hash.');
 	e2e_check(strpos($messages[0]['body'], $baseUrl . 'activate.php?') !== false
 		&& strpos($messages[0]['body'], 'untrusted.example') === false, 'Activation email did not use the trusted local server address.');
 	$activationResponse = e2e_request($baseUrl, 'activate.php?x=' . $activation[1] . '&y=' . $activation[2]);
@@ -423,6 +424,9 @@ try {
 	e2e_check($response['status'] === 302, 'Password reset request did not complete.');
 	$messages = e2e_mail_messages($capturePath);
 	e2e_check(count($messages) === 2 && preg_match('/resetPassword\.php\?key=([a-f0-9]{64})/', $messages[1]['body'], $reset), 'Password reset email was not captured.');
+	$storedReset = $db->prepare('SELECT resetToken FROM members WHERE memberID = :id');
+	$storedReset->execute(array(':id' => $registeredMemberId));
+	e2e_check($storedReset->fetchColumn() === hash('sha256', $reset[1]), 'The reset token was not stored as a hash.');
 	e2e_check(strpos($messages[1]['body'], $baseUrl . 'resetPassword.php?') !== false
 		&& strpos($messages[1]['body'], 'untrusted.example') === false, 'Password reset email did not use the trusted local server address.');
 	$response = e2e_request($baseUrl, 'resetPassword.php?key=' . $reset[1]);
