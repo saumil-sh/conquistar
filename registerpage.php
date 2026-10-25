@@ -82,7 +82,10 @@ if(isset($_POST['submit'])){
 					exit;
 				}
 			} else {
-				$hashedpassword = $user->password_hash($password, PASSWORD_BCRYPT);
+				$hashedpassword = password_hash($password, PASSWORD_DEFAULT);
+				if ($hashedpassword === false) {
+					throw new RuntimeException('Password could not be hashed.');
+				}
 				$stmt = $db->prepare("INSERT INTO members (username,password,email,active,activationExpiresAt,ip,institute,lastsolvetime) VALUES (:username, :password, :email, :active, DATE_ADD(NOW(), INTERVAL 1 DAY), :ip, :inst, ADDTIME(NOW(), '5:30:00'))");
 				$stmt->execute(array(
 					':username' => $username,
@@ -117,7 +120,7 @@ if(isset($_POST['submit'])){
 				exit;
 			}
 
-		} catch (PDOException $e) {
+		} catch (Throwable $e) {
 			error_log($e->getMessage());
 			http_response_code(500);
 			$error[] = 'We could not process the request. Please try again later.';

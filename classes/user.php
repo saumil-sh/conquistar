@@ -1,14 +1,11 @@
 <?php
-include('password.php');
-class User extends Password{
+class User {
 
     private $_db;
 	// Keep unknown-user failures on the same password-hash path.
 	private $_dummyPasswordHash = '$2y$10$/WDO/9xdnJTUs9ro3.Rf8uJv7WdroxQuVJrisrg28F8zpAI1SP3Ny';
 
     function __construct($db){
-    	parent::__construct();
-
     	$this->_db = $db;
     }
 
@@ -30,7 +27,7 @@ class User extends Password{
 
 		$row = $this->get_user_hash($username);
 		$hash = $row ? $row['password'] : $this->_dummyPasswordHash;
-		$passwordMatches = $this->password_verify($password, $hash);
+		$passwordMatches = password_verify($password, $hash);
 
 		if($row && $passwordMatches){
 

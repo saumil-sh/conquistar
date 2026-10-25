@@ -149,5 +149,4 @@ function rate_limit_allow(PDO $db, $bucket, $subject, $limit, $windowSeconds) {
 include('classes/user.php');
 include('classes/phpmailer/mail.php');
 $user = new User($db);
-$genpass= new Password();
 ?>

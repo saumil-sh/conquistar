@@ -64,7 +64,7 @@
                 $stmt->execute(array(':level' => $res['level']));
                 $res2 = $stmt->fetch();
 
-                if ($res2 && $genpass->password_verify($gans, $res2['Answer'])) {
+                if ($res2 && password_verify($gans, $res2['Answer'])) {
                     $stmt = $db->prepare("UPDATE members SET level = level + 1, lastsolvetime = ADDTIME(NOW(), '5:30:00') WHERE memberID = :member_id AND active = 'Yes' AND level = :level AND EXISTS (SELECT 1 FROM event_state WHERE singleton_id = 1 AND is_open = 1)");
                     $stmt->execute(array(':member_id' => $res['memberID'], ':level' => $res['level']));
                     if ($stmt->rowCount() === 1) {

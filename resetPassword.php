@@ -34,7 +34,10 @@ if(!isset($stop) && isset($_POST['submit'])){
 	if(!isset($error)){
 
 		//hash the password
-		$hashedpassword = $user->password_hash($password, PASSWORD_BCRYPT);
+		$hashedpassword = password_hash($password, PASSWORD_DEFAULT);
+		if ($hashedpassword === false) {
+			throw new RuntimeException('Password could not be hashed.');
+		}
 
 		try {
 
@@ -53,8 +56,10 @@ if(!isset($stop) && isset($_POST['submit'])){
 			$stop = 'This password reset link is invalid or has already been used.';
 
 		//else catch the exception and show the error.
-		} catch(PDOException $e) {
-		    $error[] = $e->getMessage();
+		} catch(Throwable $e) {
+			error_log($e->getMessage());
+			http_response_code(500);
+		    $error[] = 'We could not update the password. Please try again later.';
 		}
 
 	}
