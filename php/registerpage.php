@@ -86,7 +86,7 @@ if(isset($_POST['submit'])){
 				if ($hashedpassword === false) {
 					throw new RuntimeException('Password could not be hashed.');
 				}
-				$stmt = $db->prepare("INSERT INTO members (username,password,email,active,activationExpiresAt,ip,institute,lastsolvetime) VALUES (:username, :password, :email, :active, DATE_ADD(NOW(), INTERVAL 1 DAY), :ip, :inst, ADDTIME(NOW(), '5:30:00'))");
+				$stmt = $db->prepare("INSERT INTO members (username,password,email,active,activationExpiresAt,ip,institute,lastsolvetime) VALUES (:username, :password, :email, :active, DATE_ADD(NOW(), INTERVAL 1 DAY), :ip, :inst, UTC_TIMESTAMP(6))");
 				$stmt->execute(array(
 					':username' => $username,
 					':password' => $hashedpassword,

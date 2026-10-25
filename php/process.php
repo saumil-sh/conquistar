@@ -44,7 +44,7 @@ echo '<main class="container">';
             if (!$canGuess) {
                 echo "Too many guesses. Please wait before trying again.";
             } else {
-                $logstmt = $db->prepare('INSERT INTO answerlog (memberID,answer,TimeOfAnswer,ip) VALUES (:memid,:ans,ADDTIME(NOW(),"5:30"),:ipadd)');
+                $logstmt = $db->prepare('INSERT INTO answerlog (memberID,answer,TimeOfAnswer,ip) VALUES (:memid,:ans,UTC_TIMESTAMP(),:ipadd)');
 				$logstmt->execute(array(
 					':memid' => $res["memberID"],
 					':ans' => $answer,
@@ -57,7 +57,7 @@ echo '<main class="container">';
                 $res2 = $stmt->fetch();
 
                 if ($res2 && password_verify($gans, $res2['Answer'])) {
-                    $stmt = $db->prepare("UPDATE members SET level = level + 1, lastsolvetime = ADDTIME(NOW(), '5:30:00') WHERE memberID = :member_id AND active = 'Yes' AND level = :level AND EXISTS (SELECT 1 FROM event_state WHERE singleton_id = 1 AND is_open = 1)");
+                    $stmt = $db->prepare("UPDATE members SET level = level + 1, lastsolvetime = UTC_TIMESTAMP(6) WHERE memberID = :member_id AND active = 'Yes' AND level = :level AND EXISTS (SELECT 1 FROM event_state WHERE singleton_id = 1 AND is_open = 1)");
                     $stmt->execute(array(':member_id' => $res['memberID'], ':level' => $res['level']));
                     if ($stmt->rowCount() === 1) {
                         header('Location: process.php');

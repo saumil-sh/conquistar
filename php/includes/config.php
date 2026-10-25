@@ -67,8 +67,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !csrf_is_valid()) {
 	exit('This form could not be verified. Go back, reload the form, and try again.');
 }
 
-//set timezone
-date_default_timezone_set('Europe/Berlin');
+// All times are UTC, in PHP and in the database.
+date_default_timezone_set('UTC');
 
 //database credentials
 define('DBHOST', getenv("DB_HOST") ?: "localhost");
@@ -119,6 +119,7 @@ try {
 			PDO::ATTR_EMULATE_PREPARES => false,
 		)
 	);
+	$db->exec("SET time_zone = '+00:00'");
 
 } catch(PDOException $e) {
 	error_log($e->getMessage());

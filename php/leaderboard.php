@@ -29,7 +29,7 @@ require('layout/header.php');
 
         	echo "<table class='leaderboard'>";
         	echo "<thead><tr>";
-        	echo "<th>Rank</th><th>Name</th><th>Institution</th><th>Current Level</th><th>Time of Answer</th>";
+        	echo "<th>Rank</th><th>Name</th><th>Institution</th><th>Current Level</th><th>Time of Answer (UTC)</th>";
         	echo "</tr></thead>";
         	while ($row = $stmt->fetch()) {
         		$hasRows = true;

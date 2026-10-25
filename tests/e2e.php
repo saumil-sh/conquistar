@@ -313,6 +313,9 @@ try {
 	$state->execute(array(':id' => $registeredMemberId));
 	$player = $state->fetch();
 	e2e_check((int) $player['level'] === 1, 'Correct answer did not advance exactly one level.');
+	$answerTime = $db->query('SELECT MAX(TimeOfAnswer) FROM answerlog')->fetchColumn();
+	e2e_check(abs(strtotime($player['lastsolvetime'] . ' UTC') - time()) < 120
+		&& abs(strtotime($answerTime . ' UTC') - time()) < 120, 'Answer times were not stored in UTC.');
 
 	$response = e2e_request($baseUrl, 'process.php', 'GET', array(), $cookie);
 	$replayResponse = e2e_request($baseUrl, 'process.php', 'POST', array(
