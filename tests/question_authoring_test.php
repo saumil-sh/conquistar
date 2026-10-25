@@ -29,9 +29,9 @@ function question_authoring_remove($path)
 	rmdir($path);
 }
 
-function question_authoring_command($contentRoot, $webRoot)
+function question_authoring_command($contentRoot, $webRoot, array $args = array('validate', 'sample-lunar'))
 {
-	$process = proc_open(array(PHP_BINARY, __DIR__ . '/../tools/questions.php', 'validate', 'sample-lunar'), array(
+	$process = proc_open(array_merge(array(PHP_BINARY, __DIR__ . '/../tools/questions.php'), $args), array(
 		0 => array('file', '/dev/null', 'r'),
 		1 => array('pipe', 'w'),
 		2 => array('pipe', 'w'),
@@ -46,7 +46,7 @@ function question_authoring_command($contentRoot, $webRoot)
 	return array('status' => proc_close($process), 'output' => $output);
 }
 
-$valid = "---\nid: sample-lunar\ntitle: Sample clue\nanswer: Example answer\nhint: First hint\nhint: Second hint\nmedia: fb\n---\n# Sample clue\nFind the answer.\n\n![An example image](media:fb)\n[Safe link](https://example.test/path)\n";
+$valid = "---\nid: sample-lunar\ntitle: Sample clue\nanswer: Example answer\nhint: First hint\nmedia: fb\n---\n# Sample clue\nFind the answer.\n\n![An example image](media:fb)\n[Safe link](https://example.test/path)\n";
 $valid = str_replace("media: fb\n", '', $valid);
 $valid = str_replace("\n\n![An example image](media:fb)", '', $valid);
 $runtimeBase = __DIR__ . '/.runtime';
@@ -70,14 +70,17 @@ try {
 	$question = parse_question_markdown($valid, $mediaCatalog);
 	$bomQuestion = parse_question_markdown("\xEF\xBB\xBF" . $valid, $mediaCatalog);
 	question_authoring_check($question['id'] === 'sample-lunar'
-		&& count($question['hints']) === 2
+		&& $question['hint'] === 'First hint'
 		&& $question['media'] === array()
 		&& $bomQuestion['id'] === $question['id'], 'Valid Markdown or BOM-prefixed question was not parsed.');
 
 	$testMediaCatalog = array('test-image' => array('accessible/test.png', 0, 'image/png'));
+	$noHint = parse_question_markdown(str_replace("hint: First hint\n", '', $valid), $mediaCatalog);
+	question_authoring_check(!isset($noHint['hint']), 'A question without a hint was not accepted.');
+
 	$mediaQuestionSource = str_replace(
-		"hint: Second hint\n",
-		"hint: Second hint\nmedia: test-image\n",
+		"hint: First hint\n",
+		"hint: First hint\nmedia: test-image\n",
 		str_replace(
 			'Find the answer.',
 			'Find the answer. ![An example image](media:test-image)',
@@ -86,11 +89,15 @@ try {
 	);
 	$mediaQuestion = parse_question_markdown($mediaQuestionSource, $testMediaCatalog);
 	question_authoring_check($mediaQuestion['media'] === array('test-image'), 'Approved media ID was not parsed.');
+	question_authoring_check(question_body_html($mediaQuestion) === "<h2>Sample clue</h2>\n"
+		. "<p>Find the answer. <img src=\"media.php?file=test-image\" alt=\"An example image\"> <a href=\"https://example.test/path\">Safe link</a></p>\n", 'Question Markdown was not rendered as expected.');
+	question_authoring_check(question_answer_key('Éte Answer') === 'éteanswer', 'Answers were not normalised like player guesses.');
 
 	$invalid = array(
 		str_replace("answer: Example answer\n", '', $valid),
 		str_replace('id: sample-lunar', 'id: ../sample', $valid),
-		str_replace("hint: Second hint\n", "hint: Second hint\nmedia: unknown\n", $valid),
+		str_replace("hint: First hint\n", "hint: First hint\nhint: Second hint\n", $valid),
+		str_replace("hint: First hint\n", "hint: First hint\nmedia: unknown\n", $valid),
 		str_replace('Find the answer.', '![Unknown image](media:unknown)', $valid),
 		str_replace('# Sample clue', '<script>alert(1)</script>', $valid),
 		str_replace('Find the answer.', '![External image][remote]', $valid) . "\n[remote]: https://example.test/image.png\n",
@@ -150,6 +157,28 @@ try {
 	$insideRepository = question_authoring_command($workspace, $fakeWebRoot);
 	question_authoring_check($insideRepository['status'] !== 0
 		&& strpos($insideRepository['output'], 'outside the repository') !== false, 'Question storage inside the repository was accepted with a different web-root setting.');
+
+	$outside = sys_get_temp_dir() . '/conquistar-authoring-' . bin2hex(random_bytes(5));
+	$outsideWeb = $outside . '-web';
+	try {
+		mkdir($outside . '/drafts', 0700, true);
+		mkdir($outside . '/published', 0700);
+		chmod($outside, 0700);
+		mkdir($outsideWeb . '/questions', 0700, true);
+		file_put_contents($outside . '/drafts/sample-lunar.md', $valid);
+		$published = question_authoring_command($outside, $outsideWeb, array('publish', 'sample-lunar', '4'));
+		question_authoring_check($published['status'] === 0
+			&& file_get_contents($outsideWeb . '/questions/q_4.html') === question_body_html($question)
+			&& is_file($outside . '/published/sample-lunar.md')
+			&& preg_match("/INSERT INTO questions \\(qID, Answer, hint\\) VALUES \\(4, '([^']+)', 'First hint'\\);/", $published['output'], $insert)
+			&& password_verify('exampleanswer', $insert[1]), 'Publishing did not write the level page and its SQL. ' . $published['output']);
+		file_put_contents($outside . '/drafts/other.md', str_replace('id: sample-lunar', 'id: other', $valid));
+		$taken = question_authoring_command($outside, $outsideWeb, array('publish', 'other', '4'));
+		question_authoring_check($taken['status'] !== 0 && is_file($outside . '/drafts/other.md'), 'Publishing overwrote an existing level page.');
+	} finally {
+		question_authoring_remove($outside);
+		question_authoring_remove($outsideWeb);
+	}
 	echo "Question authoring checks passed.\n";
 } catch (Throwable $e) {
 	fwrite(STDERR, "Question authoring test failed: " . $e->getMessage() . "\n");

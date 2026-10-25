@@ -60,6 +60,10 @@ php -r 'echo password_hash(mb_strtolower(str_replace(" ", "", $argv[1])), PASSWO
 INSERT INTO questions (qID, Answer, hint) VALUES (0, '<hash>', 'Named after a Roman god.');
 ```
 
+To skip the hand-written HTML and hashing, write the question in Markdown and
+let `tools/questions.php publish` do both steps; see
+[CONTRIBUTING.md](CONTRIBUTING.md#question-authoring-tool).
+
 Each revealed hint is recorded in `hint_uses` with a UTC time and counted in
 `members.hints_used`. Question pages are ignored by git, so your content stays
 out of the repository.

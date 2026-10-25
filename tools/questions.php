@@ -41,6 +41,10 @@ function question_authoring_dirs()
 		}
 		$directories[$name] = $path;
 	}
+	$directories['live'] = $webRoot . DIRECTORY_SEPARATOR . 'questions';
+	if (!is_dir($directories['live'])) {
+		throw new RuntimeException('QUESTION_WEB_ROOT must contain a questions directory.');
+	}
 	$rootPermissions = fileperms($contentRoot);
 	if ($rootPermissions === false || ($rootPermissions & 0077) !== 0) {
 		throw new RuntimeException('QUESTION_CONTENT_DIR must be private to its owner.');
@@ -48,9 +52,12 @@ function question_authoring_dirs()
 	return $directories;
 }
 
-if ($argc !== 3 || !in_array($argv[1], array('validate', 'preview', 'publish'), true)
-	|| !preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/D', $argv[2])) {
-	fwrite(STDERR, "Usage: php tools/questions.php validate|preview|publish <question-id>\n");
+if (!in_array($argv[1] ?? '', array('validate', 'preview', 'publish'), true)
+	|| $argc !== ($argv[1] === 'publish' ? 4 : 3)
+	|| !preg_match('/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/D', $argv[2])
+	|| ($argc === 4 && !preg_match('/\A(?:0|[1-9][0-9]{0,8})\z/D', $argv[3]))) {
+	fwrite(STDERR, "Usage: php tools/questions.php validate|preview <question-id>\n");
+	fwrite(STDERR, "       php tools/questions.php publish <question-id> <level>\n");
 	exit(2);
 }
 
@@ -66,9 +73,25 @@ try {
 	} elseif ($entry['status'] !== 'draft') {
 		throw new RuntimeException('Only draft questions can be published.');
 	} else {
-		$destination = $directories['published'] . DIRECTORY_SEPARATOR . $id . '.md';
-		publish_question_file($entry['path'], $destination);
-		echo "Question " . $id . " was published to the private release queue.\n";
+		$level = (int) $argv[3];
+		$page = $directories['live'] . DIRECTORY_SEPARATOR . 'q_' . $level . '.html';
+		$handle = @fopen($page, 'x');
+		if ($handle === false || fwrite($handle, question_body_html($entry['question'])) === false || !fclose($handle)) {
+			throw new RuntimeException('Could not write ' . $page . '; a page for that level may already exist.');
+		}
+		try {
+			publish_question_file($entry['path'], $directories['published'] . DIRECTORY_SEPARATOR . $id . '.md');
+		} catch (Throwable $e) {
+			unlink($page);
+			throw $e;
+		}
+		$sqlText = function ($value) {
+			return $value === null ? 'NULL' : "'" . str_replace(array('\\', "'"), array('\\\\', "''"), $value) . "'";
+		};
+		echo "Wrote " . $page . ". Now run this SQL on the game database:\n";
+		echo "INSERT INTO questions (qID, Answer, hint) VALUES (" . $level . ", "
+			. $sqlText(password_hash(question_answer_key($entry['question']['answer']), PASSWORD_DEFAULT)) . ", "
+			. $sqlText($entry['question']['hint'] ?? null) . ");\n";
 	}
 } catch (Throwable $e) {
 	fwrite(STDERR, $e->getMessage() . "\n");

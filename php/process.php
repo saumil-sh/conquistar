@@ -1,4 +1,5 @@
-<?php require('includes/config.php'); 
+<?php require('includes/config.php');
+require_once('includes/question-format.php');
  ob_start();
  if( !$user->is_logged_in() ){ header('Location: login.php'); exit; }
 ?>
@@ -67,7 +68,7 @@ echo '<main class="container">';
 					':ipadd' => $clientIp,
 				));
 
-                $gans = mb_strtolower(str_replace(' ', '', $answer), 'UTF-8');
+                $gans = question_answer_key($answer);
                 $stmt = $db->prepare('SELECT Answer FROM questions WHERE qID = :level');
                 $stmt->execute(array(':level' => $res['level']));
                 $res2 = $stmt->fetch();

@@ -1,5 +1,11 @@
 <?php
 
+// Players may type any case and spaces; answers are hashed in this form.
+function question_answer_key($answer)
+{
+	return mb_strtolower(str_replace(' ', '', $answer), 'UTF-8');
+}
+
 function parse_question_markdown($source, array $mediaCatalog)
 {
 	if (!is_string($source) || strlen($source) > 25000 || strpos($source, "\0") !== false) {
@@ -13,7 +19,7 @@ function parse_question_markdown($source, array $mediaCatalog)
 		throw new InvalidArgumentException('Question needs a metadata block and Markdown body.');
 	}
 
-	$fields = array('hints' => array(), 'media' => array());
+	$fields = array('media' => array());
 	foreach (explode("\n", $matches[1]) as $line) {
 		if ($line === '') {
 			continue;
@@ -25,13 +31,6 @@ function parse_question_markdown($source, array $mediaCatalog)
 		$value = trim($field[2]);
 		if (preg_match('/[\x00-\x1F\x7F]/', $value)) {
 			throw new InvalidArgumentException('Question metadata cannot contain control characters.');
-		}
-		if ($key === 'hint') {
-			if ($value === '' || strlen($value) > 500) {
-				throw new InvalidArgumentException('Each hint must contain 1 to 500 characters.');
-			}
-			$fields['hints'][] = $value;
-			continue;
 		}
 		if ($key === 'media') {
 			if ($value === '' || !isset($mediaCatalog[$value]) || in_array($value, $fields['media'], true)) {
@@ -52,9 +51,11 @@ function parse_question_markdown($source, array $mediaCatalog)
 		|| $fields['title'] === ''
 		|| strlen($fields['title']) > 160
 		|| $fields['answer'] === ''
-		|| strlen($fields['answer']) > 255
-		|| !$fields['hints']) {
-		throw new InvalidArgumentException('Question requires a stable ID, title, answer, and at least one hint.');
+		|| strlen($fields['answer']) > 255) {
+		throw new InvalidArgumentException('Question requires a stable ID, title, and answer.');
+	}
+	if (isset($fields['hint']) && ($fields['hint'] === '' || strlen($fields['hint']) > 500)) {
+		throw new InvalidArgumentException('The hint must contain 1 to 500 characters.');
 	}
 
 	$body = trim($matches[2]);
@@ -141,13 +142,41 @@ function question_preview_text(array $question)
 	$preview = "Quiz-master preview (private)\n";
 	$preview .= "ID: " . $question['id'] . "\n";
 	$preview .= "Title: " . $question['title'] . "\n\n";
-	$preview .= $question['body'] . "\n\nHints:\n";
-	foreach ($question['hints'] as $hint) {
-		$preview .= "- " . $hint . "\n";
-	}
+	$preview .= $question['body'] . "\n\n";
+	$preview .= "Hint: " . ($question['hint'] ?? 'none') . "\n";
 	$preview .= "Answer: " . $question['answer'] . "\n";
 	$preview .= "Media: " . ($question['media'] ? implode(', ', $question['media']) : 'none') . "\n";
 	return $preview;
+}
+
+// Renders the limited Markdown the parser accepts: # headings, paragraphs, links and approved images.
+function question_body_html(array $question)
+{
+	$inline = function ($text) {
+		$text = htmlspecialchars($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+		$text = preg_replace('/!\[([^\]\n]*)\]\(media:([a-z0-9-]+)\)/', '<img src="media.php?file=$2" alt="$1">', $text);
+		return preg_replace('/\[([^\]\n]+)\]\(([^)\s]+)\)/', '<a href="$2">$1</a>', $text);
+	};
+	$html = '';
+	foreach (preg_split('/\n[ \t]*\n/', $question['body']) as $block) {
+		$paragraph = array();
+		// The extra empty heading at the end flushes the last paragraph.
+		foreach (explode("\n", $block . "\n# ") as $line) {
+			if (!preg_match('/\A(#{1,3})[ \t]+(.*)\z/', $line, $heading)) {
+				$paragraph[] = trim($line);
+				continue;
+			}
+			if ($paragraph) {
+				$html .= '<p>' . $inline(implode(' ', $paragraph)) . "</p>\n";
+				$paragraph = array();
+			}
+			if ($heading[2] !== '') {
+				$level = strlen($heading[1]) + 1;
+				$html .= "<h$level>" . $inline($heading[2]) . "</h$level>\n";
+			}
+		}
+	}
+	return $html;
 }
 
 function publish_question_file($source, $destination)

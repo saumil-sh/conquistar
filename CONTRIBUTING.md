@@ -86,43 +86,38 @@ and [session upload-progress advisory](https://www.php.net/archive/2026.php#2026
 starts with the event closed. There are no upgrade scripts: when you change the
 schema, update `schema.sql` and recreate your local and test databases from it.
 
-## Question authoring tool (work in progress)
+## Question authoring tool
 
-New questions use a small Markdown file with a stable lowercase ID, title,
-private answer, one or more hints, and optional approved media IDs:
+Instead of writing HTML and hashing answers by hand, a quiz master can write a
+question as a small Markdown file with a stable lowercase ID, title, private
+answer, an optional hint, and optional approved media IDs:
 
 ```markdown
 ---
 id: sample-lunar
 title: Sample clue
 answer: Example answer
-hint: First example hint
-hint: Second example hint
+hint: An example hint
 ---
 # Sample clue
 
-Write the player-facing clue here.
+Write the player-facing clue here. [Links](https://example.org) are allowed.
 ```
 
-Use one `id`, `title`, and `answer`; repeat `hint` or `media` as needed. Image
-references must use an ID in `php/includes/media-catalog.php`; HTML, external or
-reference-style images, and reference-style links are rejected. Inline links
-allow only `https`, `http`, `mailto`, or local fragments. This format is
-deliberately limited. Legacy question pages and their media have been moved to
-the private `legacy-retired` archive under `QUESTION_CONTENT_DIR` and removed
-from repository history. The player and quiz-master flows report that no
-questions are available until new player-facing content is ready.
+Use one `id`, `title`, `answer` and at most one `hint`; repeat `media` as
+needed. The body supports `#` headings, paragraphs, inline links (`https`,
+`http`, `mailto` or local fragments) and images that use an ID from
+`php/includes/media-catalog.php`, written as `![alt text](media:ID)`. HTML and
+reference-style links or images are rejected.
 
-Keep authored files outside both the repository and the web document root. The
-CLI enforces both boundaries; setting a different `QUESTION_WEB_ROOT` cannot
-make an in-repository folder private. Set
-`QUESTION_CONTENT_DIR` to a private directory with `drafts/` and `published/`
-subdirectories, and set `QUESTION_WEB_ROOT` to the actual document root. For
-example:
+Keep authored files outside both the repository and the web document root; the
+tool enforces both. Set `QUESTION_CONTENT_DIR` to a private directory with
+`drafts/` and `published/` subdirectories, and `QUESTION_WEB_ROOT` to the
+document root (the folder that holds `questions/`):
 
 ```sh
 export QUESTION_CONTENT_DIR="$HOME/conquistar-private"
-export QUESTION_WEB_ROOT="/path/to/the/actual/document-root"
+export QUESTION_WEB_ROOT="/path/to/conquistar/php"
 mkdir -p "$QUESTION_CONTENT_DIR/drafts" "$QUESTION_CONTENT_DIR/published"
 chmod 700 "$QUESTION_CONTENT_DIR" "$QUESTION_CONTENT_DIR/drafts" "$QUESTION_CONTENT_DIR/published"
 ```
@@ -132,10 +127,11 @@ Save the example as `$QUESTION_CONTENT_DIR/drafts/sample-lunar.md`, then run:
 ```sh
 php tools/questions.php validate sample-lunar
 php tools/questions.php preview sample-lunar
-php tools/questions.php publish sample-lunar
+php tools/questions.php publish sample-lunar 0
 ```
 
-Preview is terminal-only and includes the answer and hints for the quiz master.
-Publishing validates the file and moves it into the private release queue; it
-does not yet make Markdown content available to players. No Markdown answers
-or drafts are served publicly.
+Preview prints the question, answer and hint in the terminal only. Publish
+takes the level number, writes `questions/q_0.html`, moves the draft to
+`published/`, and prints the `INSERT INTO questions` statement (with the
+hashed answer) to run on the game database. It refuses to overwrite an
+existing level page.
