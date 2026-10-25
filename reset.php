@@ -24,12 +24,12 @@ if(isset($_POST['submit'])){
 	//if no errors have been created carry on
 	if(!isset($error)){
 
-		//create the activasion code
-		$token = md5(uniqid(rand(),true));
+		//create the reset code
+		$token = bin2hex(random_bytes(32));
 
 		try {
 
-			$stmt = $db->prepare("UPDATE members SET resetToken = :token, resetComplete='No' WHERE email = :email");
+			$stmt = $db->prepare("UPDATE members SET resetToken = :token, resetComplete = 'No', resetExpiresAt = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE email = :email");
 			$stmt->execute(array(
 				':email' => $row['email'],
 				':token' => $token
