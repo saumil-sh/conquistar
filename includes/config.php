@@ -61,7 +61,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && !csrf_is_valid()) {
 }
 
 //set timezone
-date_default_timezone_set('Europe/Germany');
+date_default_timezone_set('Europe/Berlin');
 
 //database credentials
 define('DBHOST', getenv("DB_HOST") ?: "localhost");
