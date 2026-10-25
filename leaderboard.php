@@ -6,12 +6,9 @@ $title = 'Conquistar | Leaderboard';
 require('layout/header.php');
 ?>
   
-<div class="container"><center>
-  <br>
-    <h1>Conquistar 2020</h1>
-  <h2>Leaderboard</h2><br></center>
-    <div class="row">
-        <div class="col-md-12">
+<main class="container">
+  <h1>Conquistar 2020</h1>
+  <h2>Leaderboard</h2>
     
 
 <?php
@@ -30,8 +27,8 @@ require('layout/header.php');
         	$rank = 1;
         	$hasRows = false;
 
-        	echo "<table class='table table-hover'>";
-        	echo "<thead class='thead-inverse'><tr class='table-header'>";
+        	echo "<table class='leaderboard'>";
+        	echo "<thead><tr>";
         	echo "<th>Rank</th><th>Name</th><th>Institution</th><th>Current Level</th><th>Time of Answer</th>";
         	echo "</tr></thead>";
         	while ($row = $stmt->fetch()) {
@@ -71,9 +68,5 @@ require('layout/header.php');
         		echo "No active players yet.";
         	}
         ?>
-  
-            
-      </div>
-    </div>
-</div>
+</main>
 <?php require('layout/footer.php'); ?>

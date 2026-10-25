@@ -5,6 +5,7 @@
 <?php
 $title = 'Puzzle';
 require('layout/header.php');
+echo '<main class="container">';
 
 
 		$memberId = filter_var($_SESSION['memberID'] ?? null, FILTER_VALIDATE_INT);
@@ -73,8 +74,7 @@ require('layout/header.php');
                 }
             }
         }
-    echo "<br/>";
-    echo "<h2 align='center'>Welcome <b>".h($res['username'])."</b><br/><br/></h2>";
+    echo "<h2>Welcome <b>".h($res['username'])."</b></h2>";
     if (!$eventOpen) {
         echo '<p>The event is closed.</p>';
     } elseif ($totalQuestions === 0) {
@@ -89,23 +89,11 @@ require('layout/header.php');
 ?>
 <?php if ($eventOpen && $hasCurrentQuestion): ?>
 <form action="process.php" method="post">
-                        <?= csrf_field() ?>
-
-                        <div class="col-xs-15" style = "margin-left:100px; margin-right:100px;">
-                          <input class="form-control" type="text" placeholder="Answer" name="ans">
-                        </div><br>
-                        <div class="col-xs-15">
-                            <center>
-                            <button type="submit" class="btn btn-default btn-lg">
-                              Submit
-                            </button>
-                            </center>
-                        </div>
-</form> 
-                        </div>
-<div class="alert alert-warning alert-dismissable" style = "margin-left:50px; margin-right:50px;">
-			<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-		  <center>Your IP address is being logged for security reasons.</center>
-		</div>
-		<?php endif; ?>
+	<?= csrf_field() ?>
+	<input type="text" placeholder="Answer" name="ans" aria-label="Answer">
+	<button type="submit">Submit</button>
+</form>
+<p class="muted">Your IP address is being logged for security reasons.</p>
+<?php endif; ?>
+</main>
 <?php require('layout/footer.php'); ?>
