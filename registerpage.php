@@ -71,9 +71,8 @@ if(isset($_POST['submit'])){
 		//hash the password
 		$hashedpassword = $user->password_hash($password, PASSWORD_BCRYPT);
 
-		//create the activasion code
-		$activasion = md5(uniqid(rand(),true));
-        //$activasion = 'YES';
+		//create the activation code
+		$activasion = bin2hex(random_bytes(32));
 		try {
 			function getUserIP()
 						{
@@ -104,7 +103,7 @@ if(isset($_POST['submit'])){
 			$now = date("Y-m-d H:i:s");
 
 			//insert into database with a prepared statement
-			$stmt = $db->prepare('INSERT INTO members (memberID,username,password,email,active,ip,institute,lastsolvetime) VALUES (:memid, :username, :password, :email, :active, :ip, :inst, :time)');
+			$stmt = $db->prepare("INSERT INTO members (memberID,username,password,email,active,activationExpiresAt,ip,institute,lastsolvetime) VALUES (:memid, :username, :password, :email, :active, DATE_ADD(NOW(), INTERVAL 1 DAY), :ip, :inst, :time)");
 			$stmt->execute(array(
 				':memid' => $nid,
 				':username' => $username,

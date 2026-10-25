@@ -1,31 +1,22 @@
 <?php
 require('includes/config.php');
 
-//collect values from the url
-$memberID = trim($_GET['x']);
-$active = trim($_GET['y']);
-//$ky=generateKey();
-//if id is number and the active token is not empty carry on
-if(is_numeric($memberID) && !empty($active)){
-	//update users record set the active column to Yes where the memberID and active value match the ones provided in the array
-	echo "Activating..";
-	$prstmt="UPDATE members SET active = 'Yes',level=0,lastsolvetime=addtime(NOW(),'5:30:00'),lockedq=0 WHERE memberID = :memberID AND active =:active";
-	$stmt = $db->prepare($prstmt);
+// Activation is a single-use capability; leave player progress untouched.
+$memberID = is_string($_GET['x'] ?? null) ? $_GET['x'] : '';
+$active = is_string($_GET['y'] ?? null) ? $_GET['y'] : '';
+if (ctype_digit($memberID) && $memberID !== '' && $active !== '') {
+	$stmt = $db->prepare("UPDATE members SET active = 'Yes', activationExpiresAt = NULL WHERE memberID = :memberID AND active = :active AND activationExpiresAt > NOW()");
 	$stmt->execute(array(
 		':memberID' => $memberID,
-		':active' => "$active",
+		':active' => $active,
 	));
 
-	echo "....";
-	//if the row was updated redirect the user
-	if($stmt->rowCount() == 1){
-	    echo "Success!";
-		//redirect to login page
+	if ($stmt->rowCount() === 1) {
 		header('Location: login.php?action=active');
 		exit;
-
-	} else {
-		echo "Your account could not be activated."; 
 	}
 }
+
+http_response_code(400);
+echo 'Your account could not be activated.';
 ?>
