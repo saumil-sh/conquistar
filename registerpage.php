@@ -72,15 +72,6 @@ if(isset($_POST['submit'])){
 			exit;
 		}
 
-		$stmt = $db->prepare('SELECT max(memberID) as nid FROM members');
-		$stmt->execute();
-		$row = $stmt->fetch(PDO::FETCH_ASSOC);
-		$nid=$row['nid'];
-		if(!empty($nid))
-			$nid+=1;
-		else
-			$nid=1;
-
 		//hash the password
 		$hashedpassword = $user->password_hash($password, PASSWORD_BCRYPT);
 
@@ -93,9 +84,8 @@ if(isset($_POST['submit'])){
 			$now = date("Y-m-d H:i:s");
 
 			//insert into database with a prepared statement
-			$stmt = $db->prepare("INSERT INTO members (memberID,username,password,email,active,activationExpiresAt,ip,institute,lastsolvetime) VALUES (:memid, :username, :password, :email, :active, DATE_ADD(NOW(), INTERVAL 1 DAY), :ip, :inst, :time)");
+			$stmt = $db->prepare("INSERT INTO members (username,password,email,active,activationExpiresAt,ip,institute,lastsolvetime) VALUES (:username, :password, :email, :active, DATE_ADD(NOW(), INTERVAL 1 DAY), :ip, :inst, :time)");
 			$stmt->execute(array(
-				':memid' => $nid,
 				':username' => $username,
 				':password' => $hashedpassword,
 				':email' => $email,
@@ -104,7 +94,10 @@ if(isset($_POST['submit'])){
 				':inst' => $institute,
 				':time' => $now,
 			));
-			$id = $nid;
+			$id = $db->lastInsertId();
+			if ($id === false || $id === '0') {
+				throw new RuntimeException('A member ID was not generated.');
+			}
 
 			//send email
 			$to = $email;
