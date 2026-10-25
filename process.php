@@ -97,8 +97,7 @@ require('layout/header.php');
                         <div class="col-xs-15">
                             <center>
                             <button type="submit" class="btn btn-default btn-lg">
-                              <span class="glyphicon glyphicon-check" aria-hidden="true">
-                              </span> Submit
+                              Submit
                             </button>
                             </center>
                         </div>
