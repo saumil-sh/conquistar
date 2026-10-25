@@ -26,9 +26,8 @@ if(isset($_POST['submit'])){
 		$error[] = 'Passwords do not match.';
 	}
 	
-	if(strlen($institute) < 3){
-		$error[] = 'Institute is too short.';
-		
+	if(mb_strlen($institute) < 3 || mb_strlen($institute) > 100){
+		$error[] = INSTITUTE_RULE;
 	}
 
 	//email validation
@@ -144,16 +143,28 @@ require('layout/header.php');
 	<?php elseif (($_GET['action'] ?? '') === 'deleted'): ?>
 	<p class="alert alert-success">Your account and answer history have been deleted.</p>
 	<?php endif; ?>
-	<input type="text" name="username" id="username" placeholder="User Name" aria-label="User Name" value="<?php if (isset($error)) { echo h($_POST['username'] ?? ''); } ?>">
-	<input type="email" name="email" id="email" placeholder="Email Address" aria-label="Email Address" value="<?php if (isset($error)) { echo h($_POST['email'] ?? ''); } ?>">
-	<input type="text" name="ins" id="ins" placeholder="Institution" aria-label="Institution">
-	<input type="password" name="password" id="password" placeholder="Password" aria-label="Password">
-	<input type="password" name="passwordConfirm" id="passwordConfirm" placeholder="Confirm Password" aria-label="Confirm Password">
+	<label data-tooltip="<?= h(USERNAME_RULE) ?>">Username
+		<input type="text" name="username" required pattern="<?= h(USERNAME_PATTERN) ?>" maxlength="30" autocomplete="username" aria-description="<?= h(USERNAME_RULE) ?>" value="<?php if (isset($error)) { echo h($_POST['username'] ?? ''); } ?>">
+	</label>
+	<label data-tooltip="A valid email address. Your activation link is sent here.">Email address
+		<input type="email" name="email" required autocomplete="email" value="<?php if (isset($error)) { echo h($_POST['email'] ?? ''); } ?>">
+	</label>
+	<label data-tooltip="<?= h(INSTITUTE_RULE) ?>">Institution
+		<input type="text" name="ins" required minlength="3" maxlength="100" aria-description="<?= h(INSTITUTE_RULE) ?>" value="<?php if (isset($error)) { echo h($_POST['ins'] ?? ''); } ?>">
+	</label>
+	<label data-tooltip="<?= h(PASSWORD_RULE) ?>">Password
+		<span class="field-check">
+			<input type="password" name="password" required pattern="<?= h(PASSWORD_PATTERN) ?>" autocomplete="new-password" aria-description="<?= h(PASSWORD_RULE) ?>">
+			<span class="check" aria-hidden="true"></span>
+		</span>
+	</label>
+	<label data-tooltip="Type the same password again.">Confirm password
+		<input type="password" name="passwordConfirm" required autocomplete="new-password">
+	</label>
 	<input type="submit" name="submit" value="Register">
 </form>
 <h3>General Instructions</h3>
 <ul>
-	<li>Do <b>NOT</b> use special characters, spaces, etc. in your username. Please use only letters, digits, - or _ (3 to 30 characters).</li>
 	<li>After sign up you will receive a verification link on the email registered. Verify by clicking on the link and then login. <u>You won't be able to login unless you have verified your account.</u></li>
 	<li>Also, try to use a desktop or laptops as much as possible. Some levels might require it.</li>
 </ul>

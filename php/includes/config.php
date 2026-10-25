@@ -23,6 +23,7 @@ const USERNAME_PATTERN = '[A-Za-z0-9_\\-]{3,30}';
 const PASSWORD_PATTERN = '(?=.*[A-Za-z])(?=.*[0-9]).{8,}';
 const USERNAME_RULE = 'Username must be 3 to 30 letters, digits, - or _.';
 const PASSWORD_RULE = 'Password must be at least 8 characters and include a letter and a digit.';
+const INSTITUTE_RULE = 'Institution must be 3 to 100 characters.';
 
 function matches_rule($value, $pattern) {
 	return preg_match('/\A' . $pattern . '\z/Du', $value) === 1;
