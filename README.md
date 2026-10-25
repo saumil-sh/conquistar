@@ -54,6 +54,15 @@ refuse to run unless `TEST_DB_NAME` and `DB_NAME` match; the end-to-end runner
 also requires a loopback database host. Set `DB_NAME` for the application
 connection rather than editing the schema or migration files.
 
+To run end-to-end checks, first create an isolated, empty test database and
+apply `schema.sql` to it. Set `DB_NAME` and `TEST_DB_NAME` to that same test
+database, set `TEST_DB_HOST=localhost`, and provide only test credentials
+through `TEST_DB_USER` and `TEST_DB_PASSWORD`. Then run
+`php tests/e2e.php`; it starts a local PHP server and captures test emails
+privately rather than sending them. The runner refuses non-test names, remote
+database hosts, and test databases with existing members, questions, answer
+logs, or rate-limit rows.
+
 The leaderboard includes active accounts only. It orders by highest level,
 then earliest solve time, then lowest member ID for a deterministic final tie.
 It shows the first 50 players and, when you are signed in, your rank even if

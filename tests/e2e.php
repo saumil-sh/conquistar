@@ -1,0 +1,344 @@
+<?php
+require_once(__DIR__ . '/test_db_guard.php');
+$testDatabase = require_test_database_environment();
+
+$databaseHost = getenv('TEST_DB_HOST');
+if (!is_string($databaseHost)) {
+	fwrite(STDERR, "Set TEST_DB_HOST to localhost or another loopback address.\n");
+	exit(2);
+}
+if (!in_array($databaseHost, array('localhost', '127.0.0.1', '::1'), true)) {
+	fwrite(STDERR, "End-to-end tests only connect to a loopback database host.\n");
+	exit(2);
+}
+$databaseUser = getenv('TEST_DB_USER');
+$databasePassword = getenv('TEST_DB_PASSWORD');
+if (!is_string($databaseUser) || !is_string($databasePassword)) {
+	fwrite(STDERR, "Set TEST_DB_USER and TEST_DB_PASSWORD for the test database only.\n");
+	exit(2);
+}
+
+$port = getenv('TEST_HTTP_PORT') ?: '18765';
+if (!ctype_digit((string) $port) || (int) $port < 1024 || (int) $port > 65535) {
+	fwrite(STDERR, "TEST_HTTP_PORT must be a local TCP port between 1024 and 65535.\n");
+	exit(2);
+}
+
+$runtimeDirectory = __DIR__ . '/.runtime';
+if (file_exists($runtimeDirectory)) {
+	fwrite(STDERR, "Remove tests/.runtime after reviewing its contents, then retry.\n");
+	exit(2);
+}
+if (!mkdir($runtimeDirectory, 0700)) {
+	fwrite(STDERR, "Could not create the private test runtime directory.\n");
+	exit(2);
+}
+$sessionDirectory = $runtimeDirectory . '/sessions';
+if (!mkdir($sessionDirectory, 0700)) {
+	rmdir($runtimeDirectory);
+	fwrite(STDERR, "Could not create the private test session directory.\n");
+	exit(2);
+}
+
+$capturePath = $runtimeDirectory . '/mail.jsonl';
+file_put_contents($capturePath, '');
+$root = realpath(__DIR__ . '/..');
+$baseUrl = 'http://127.0.0.1:' . $port . '/';
+$server = null;
+$db = null;
+$memberIds = array();
+$username = 'e2e' . bin2hex(random_bytes(5));
+$registeredMemberId = null;
+$questionTouched = false;
+$testDataPrepared = false;
+$exitCode = 0;
+
+function e2e_check($condition, $message)
+{
+	if (!$condition) {
+		throw new RuntimeException($message);
+	}
+}
+
+function e2e_request($baseUrl, $path, $method = 'GET', $fields = array(), $cookie = '')
+{
+	$url = preg_match('/\Ahttps?:\/\//i', $path) ? $path : $baseUrl . ltrim($path, '/');
+	$headers = array('Accept: */*');
+	if ($cookie !== '') {
+		$headers[] = 'Cookie: PHPSESSID=' . $cookie;
+	}
+	$options = array(
+		'method' => $method,
+		'header' => implode("\r\n", $headers),
+		'ignore_errors' => true,
+		'follow_location' => 0,
+		'timeout' => 10,
+	);
+	if ($method === 'POST') {
+		$options['header'] .= "\r\nContent-Type: application/x-www-form-urlencoded";
+		$options['content'] = http_build_query($fields);
+	}
+	$http_response_header = array();
+	$body = @file_get_contents($url, false, stream_context_create(array('http' => $options)));
+	e2e_check($body !== false, "Could not reach the local test server.");
+
+	$status = 0;
+	$newCookie = $cookie;
+	foreach ($http_response_header as $header) {
+		if (preg_match('/^HTTP\/\S+\s+(\d+)/', $header, $matches)) {
+			$status = (int) $matches[1];
+		}
+		if (preg_match('/^Set-Cookie:\s*PHPSESSID=([^;]*)/i', $header, $matches)) {
+			$newCookie = $matches[1];
+		}
+	}
+	return array('status' => $status, 'body' => $body, 'headers' => $http_response_header, 'cookie' => $newCookie);
+}
+
+function e2e_csrf($html)
+{
+	if (!preg_match('/name="csrf_token"\s+value="([^"]+)"/', $html, $matches)) {
+		throw new RuntimeException('A form did not contain its CSRF token.');
+	}
+	return $matches[1];
+}
+
+function e2e_mail_messages($path)
+{
+	$messages = array();
+	foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+		$message = json_decode($line, true);
+		if (is_array($message)) {
+			$messages[] = $message;
+		}
+	}
+	return $messages;
+}
+
+try {
+	try {
+		$db = new PDO(
+			'mysql:host=' . $databaseHost . ';dbname=' . $testDatabase . ';charset=utf8mb4',
+			$databaseUser,
+			$databasePassword,
+			array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC)
+		);
+	} catch (PDOException $e) {
+		throw new RuntimeException('Could not connect to the explicitly named local test database.');
+	}
+
+	foreach (array('members', 'questions', 'answerlog', 'request_limits') as $table) {
+		$count = (int) $db->query('SELECT COUNT(*) FROM ' . $table)->fetchColumn();
+		e2e_check($count === 0, 'Use a fresh, isolated test database with empty ' . $table . '.');
+	}
+	$testDataPrepared = true;
+
+	$testAnswerHash = password_hash('testanswer', PASSWORD_BCRYPT);
+	$stmt = $db->prepare('INSERT INTO questions (qID, Answer) VALUES (0, :answer)');
+	$stmt->execute(array(':answer' => $testAnswerHash));
+	$questionTouched = true;
+
+	$environment = array(
+		'APP_ENV' => 'test',
+		'APP_URL' => $baseUrl,
+		'DB_HOST' => $databaseHost,
+		'DB_NAME' => $testDatabase,
+		'DB_USER' => $databaseUser,
+		'DB_PASSWORD' => $databasePassword,
+		'TEST_DB_NAME' => $testDatabase,
+		'TEST_MAIL_CAPTURE' => realpath($runtimeDirectory) . '/mail.jsonl',
+	);
+	$command = array(PHP_BINARY, '-d', 'session.save_path=' . $sessionDirectory, '-S', '127.0.0.1:' . (int) $port, '-t', $root, __DIR__ . '/e2e-router.php');
+	$server = proc_open($command, array(
+		0 => array('file', '/dev/null', 'r'),
+		1 => array('file', '/dev/null', 'a'),
+		2 => array('file', '/dev/null', 'a'),
+	), $pipes, $root, $environment);
+	e2e_check(is_resource($server), 'Could not start the local PHP test server.');
+
+	$ready = false;
+	for ($attempt = 0; $attempt < 40; $attempt++) {
+		$socket = @fsockopen('127.0.0.1', (int) $port, $errorCode, $errorMessage, 0.2);
+		if ($socket) {
+			fclose($socket);
+			$ready = true;
+			break;
+		}
+		usleep(100000);
+	}
+	e2e_check($ready, 'The local PHP test server did not become ready.');
+
+	$response = e2e_request($baseUrl, 'registerpage.php');
+	e2e_check($response['status'] === 200, 'Registration form did not load.');
+	$cookie = $response['cookie'];
+	$response = e2e_request($baseUrl, 'registerpage.php', 'POST', array(
+		'csrf_token' => e2e_csrf($response['body']),
+		'username' => $username,
+		'email' => $username . '@example.test',
+		'password' => 'old-password',
+		'passwordConfirm' => 'old-password',
+		'ins' => 'Test institute',
+		'submit' => 'Register',
+	), $cookie);
+	e2e_check($response['status'] === 302, 'Registration did not complete.');
+
+	$stmt = $db->prepare('SELECT memberID, active, level FROM members WHERE username = :username');
+	$stmt->execute(array(':username' => $username));
+	$member = $stmt->fetch();
+	e2e_check($member && $member['active'] !== 'Yes', 'Registration did not create an inactive account.');
+	$registeredMemberId = (int) $member['memberID'];
+	$memberIds[] = $registeredMemberId;
+	$messages = e2e_mail_messages($capturePath);
+	e2e_check(count($messages) === 1 && preg_match('/activate\.php\?x=([0-9]+)&amp;y=([a-f0-9]{64})/', $messages[0]['body'], $activation), 'Registration activation email was not captured.');
+	$activationResponse = e2e_request($baseUrl, 'activate.php?x=' . $activation[1] . '&y=' . $activation[2]);
+	e2e_check($activationResponse['status'] === 302, 'Activation link did not activate the account.');
+	$replayResponse = e2e_request($baseUrl, 'activate.php?x=' . $activation[1] . '&y=' . $activation[2]);
+	e2e_check($replayResponse['status'] === 400, 'Activation link replay was accepted.');
+
+	$response = e2e_request($baseUrl, 'login.php');
+	$cookie = $response['cookie'];
+	$response = e2e_request($baseUrl, 'login.php', 'POST', array(
+		'csrf_token' => e2e_csrf($response['body']),
+		'username' => $username,
+		'password' => 'old-password',
+		'submit' => 'Login',
+	), $cookie);
+	e2e_check($response['status'] === 302, 'Login failed after activation.');
+	$cookie = $response['cookie'];
+	$response = e2e_request($baseUrl, 'process.php', 'GET', array(), $cookie);
+	$response = e2e_request($baseUrl, 'process.php', 'POST', array(
+		'csrf_token' => e2e_csrf($response['body']),
+		'ans' => 'testanswer',
+	), $cookie);
+	e2e_check($response['status'] === 302, 'Correct answer did not advance the player.');
+	$state = $db->prepare('SELECT level, lastsolvetime FROM members WHERE memberID = :id');
+	$state->execute(array(':id' => $registeredMemberId));
+	$player = $state->fetch();
+	e2e_check((int) $player['level'] === 1, 'Correct answer did not advance exactly one level.');
+
+	$response = e2e_request($baseUrl, 'process.php', 'GET', array(), $cookie);
+	$replayResponse = e2e_request($baseUrl, 'process.php', 'POST', array(
+		'csrf_token' => e2e_csrf($response['body']),
+		'ans' => 'testanswer',
+	), $cookie);
+	$state->execute(array(':id' => $registeredMemberId));
+	e2e_check((int) $state->fetchColumn() === 1, 'Answer replay advanced the player again.');
+	e2e_check(strpos($replayResponse['body'], 'Wrong Answer') !== false, 'Answer replay was not rejected.');
+
+	$response = e2e_request($baseUrl, 'media.php?file=fb', 'GET', array(), $cookie);
+	e2e_check($response['status'] === 403, 'Media was exposed before its level.');
+	$unauthenticatedMedia = e2e_request($baseUrl, 'media.php?file=fb');
+	e2e_check($unauthenticatedMedia['status'] === 403, 'Media was exposed without a player session.');
+	$update = $db->prepare('UPDATE members SET level = 2 WHERE memberID = :id');
+	$update->execute(array(':id' => $registeredMemberId));
+	$authorizedMedia = e2e_request($baseUrl, 'media.php?file=fb', 'GET', array(), $cookie);
+	e2e_check($authorizedMedia['status'] === 200, 'Unlocked media was not available to its player.');
+	$privateRuntime = e2e_request($baseUrl, 'tests/.runtime/mail.jsonl');
+	e2e_check($privateRuntime['status'] === 404, 'Test mail capture was reachable over HTTP.');
+
+	$response = e2e_request($baseUrl, 'process.php', 'GET', array(), $cookie);
+	$logout = e2e_request($baseUrl, 'logout.php', 'POST', array('csrf_token' => e2e_csrf($response['body'])), $cookie);
+	e2e_check($logout['status'] === 302, 'Logout failed before password reset.');
+
+	$response = e2e_request($baseUrl, 'reset.php');
+	$cookie = $response['cookie'];
+	$response = e2e_request($baseUrl, 'reset.php', 'POST', array(
+		'csrf_token' => e2e_csrf($response['body']),
+		'email' => $username . '@example.test',
+		'submit' => 'Sent Reset Link',
+	), $cookie);
+	e2e_check($response['status'] === 302, 'Password reset request did not complete.');
+	$messages = e2e_mail_messages($capturePath);
+	e2e_check(count($messages) === 2 && preg_match('/resetPassword\.php\?key=([a-f0-9]{64})/', $messages[1]['body'], $reset), 'Password reset email was not captured.');
+	$response = e2e_request($baseUrl, 'resetPassword.php?key=' . $reset[1]);
+	e2e_check($response['status'] === 200, 'Password reset form did not load.');
+	$cookie = $response['cookie'];
+	$response = e2e_request($baseUrl, 'resetPassword.php?key=' . $reset[1], 'POST', array(
+		'csrf_token' => e2e_csrf($response['body']),
+		'password' => 'new-password',
+		'passwordConfirm' => 'new-password',
+		'submit' => 'Change Password',
+	), $cookie);
+	e2e_check($response['status'] === 302, 'Password reset did not complete.');
+	$resetReplay = e2e_request($baseUrl, 'resetPassword.php?key=' . $reset[1]);
+	e2e_check(strpos($resetReplay['body'], 'invalid, expired, or has already been used') !== false, 'Password reset token replay was accepted.');
+
+	$response = e2e_request($baseUrl, 'login.php');
+	$cookie = $response['cookie'];
+	$response = e2e_request($baseUrl, 'login.php', 'POST', array(
+		'csrf_token' => e2e_csrf($response['body']),
+		'username' => $username,
+		'password' => 'new-password',
+		'submit' => 'Login',
+	), $cookie);
+	e2e_check($response['status'] === 302, 'Login failed after password reset.');
+	$cookie = $response['cookie'];
+	$state->execute(array(':id' => $registeredMemberId));
+	$player = $state->fetch();
+	$tieName = $username . 'tie';
+	$inactiveName = $username . 'inactive';
+	$peerPassword = password_hash('test-password', PASSWORD_BCRYPT);
+	$insertPeer = $db->prepare("INSERT INTO members
+		(username, password, email, active, resetComplete, level, ip, institute, lastsolvetime, logincount)
+		VALUES (:username, :password, :email, :active, 'No', :level, '127.0.0.1', 'Test institute', :solved, 0)");
+	foreach (array(array($tieName, 'Yes', 2, $player['lastsolvetime']), array($inactiveName, 'No', 99, '2000-01-01 00:00:00')) as $peer) {
+		$insertPeer->execute(array(
+			':username' => $peer[0],
+			':password' => $peerPassword,
+			':email' => $peer[0] . '@example.test',
+			':active' => $peer[1],
+			':level' => $peer[2],
+			':solved' => $peer[3],
+		));
+		$memberIds[] = (int) $db->lastInsertId();
+	}
+
+	$leaderboard = e2e_request($baseUrl, 'leaderboard.php', 'GET', array(), $cookie);
+	e2e_check($leaderboard['status'] === 200, 'Leaderboard did not load.');
+	e2e_check(strpos($leaderboard['body'], 'Your rank: 1') !== false, 'Deterministic tie rank was incorrect.');
+	e2e_check(strpos($leaderboard['body'], $inactiveName) === false, 'Inactive player appeared on the leaderboard.');
+	e2e_check(strpos($leaderboard['body'], $username) < strpos($leaderboard['body'], $tieName), 'Equal scores were not ordered deterministically.');
+	echo "Registration, activation, login, reset, answer replay, media access, and rankings passed.\n";
+} catch (Throwable $e) {
+	fwrite(STDERR, "End-to-end test failed: " . $e->getMessage() . "\n");
+	$exitCode = 1;
+} finally {
+	if (is_resource($server)) {
+		proc_terminate($server);
+		proc_close($server);
+	}
+	if ($db instanceof PDO && $testDataPrepared) {
+		try {
+			if ($registeredMemberId === null && isset($username)) {
+				$lookup = $db->prepare('SELECT memberID FROM members WHERE username = :username');
+				$lookup->execute(array(':username' => $username));
+				$registeredMemberId = $lookup->fetchColumn();
+				if ($registeredMemberId) {
+					$memberIds[] = (int) $registeredMemberId;
+				}
+			}
+			if ($memberIds) {
+				$ids = implode(',', array_map('intval', array_unique($memberIds)));
+				$db->exec('DELETE FROM answerlog WHERE memberID IN (' . $ids . ')');
+				$db->exec('DELETE FROM members WHERE memberID IN (' . $ids . ')');
+			}
+			$db->exec('DELETE FROM request_limits');
+			if ($questionTouched) {
+				$db->exec('DELETE FROM questions WHERE qID = 0');
+			}
+		} catch (Throwable $e) {
+			fwrite(STDERR, "Test database cleanup failed; inspect only the isolated test database.\n");
+			$exitCode = 1;
+		}
+	}
+	@unlink($capturePath);
+	foreach (glob($sessionDirectory . '/*') as $sessionFile) {
+		if (is_file($sessionFile)) {
+			@unlink($sessionFile);
+		}
+	}
+	@rmdir($sessionDirectory);
+	@rmdir($runtimeDirectory);
+}
+
+exit($exitCode);
