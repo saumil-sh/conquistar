@@ -2,38 +2,10 @@
  ob_start();
  if( !$user->is_logged_in() ){ header('Location: login.php'); exit; }
 ?>
-<?php echo '
-<head>
-<meta charset="UTF-8">
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
-<link rel="icon" type="image/png" href="assets/favicon.png">
-</head>
-<nav class="navbar navbar-inverse bg-primary navbar-toggleable-md navbar-fixed-top" style="font-weight:300">
-  <button class="navbar-toggler navbar-toggler-right collapsed" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
-  </button>
-  <a class="navbar-brand" href="http://iplug.website/">CONQUISTAR 2020</a>
+<?php
+$title = 'Puzzle';
+require('layout/header.php');
 
-  <div class="navbar-collapse collapse" id="navbarSupportedContent" aria-expanded="false">
-    <ul class="navbar-nav mr-auto">
-      <li class="nav-item">
-        <a class="nav-link" href="index.php">Home</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="memberpage.php">Dashboard</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="https://www.facebook.com/ConquistarHunt">Hints</a>
-      </li>
-    <li class="nav-item">
-        <a class="nav-link" href="leaderboard.php">Leaderboard</a>
-      </li>
-    <li class="nav-item">
-        <form method="post" action="logout.php">' . csrf_field() . '<button type="submit" class="nav-link btn btn-link">Logout</button></form>
-      </li>
-    </ul>
-  </div>
-</nav>';
 
 		$memberId = filter_var($_SESSION['memberID'] ?? null, FILTER_VALIDATE_INT);
 		if ($memberId === false || $memberId < 1) {
@@ -114,10 +86,6 @@
     } else {
         echo '<p>This puzzle is currently unavailable.</p>';
     }
-	    
-	    
-		
-require('layout/footer.php'); 
 ?>
 <?php if ($eventOpen && $hasCurrentQuestion): ?>
 <form action="process.php" method="post">
@@ -143,3 +111,4 @@ require('layout/footer.php');
 <script src="js/jquery.js"></script>
 <script src="js/bootstrap.min.js"></script>
 		<?php endif; ?>
+<?php require('layout/footer.php'); ?>

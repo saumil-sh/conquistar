@@ -1,43 +1,10 @@
 <?php require('includes/config.php');
 ?>
 
-<html>
-<head lang="en">
-    <meta charset="UTF-8">
-    <title>Conquistar | Leaderboard</title>
-    
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
-    <link rel="icon" type="image/png" href="assets/favicon.png">
-  
-</head>
-<body>
-  
-  <nav class="navbar navbar-inverse bg-primary navbar-toggleable-md navbar-fixed-top" style="font-weight:300">
-  <button class="navbar-toggler navbar-toggler-right collapsed" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
-  </button>
-  <a class="navbar-brand" href="http://iplug.website/">CONQUISTAR 2020</a>
-
-  <div class="navbar-collapse collapse" id="navbarSupportedContent" aria-expanded="false">
-    <ul class="navbar-nav mr-auto">
-      <li class="nav-item">
-        <a class="nav-link" href="index.php">Home</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="memberpage.php">Dashboard</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="https://www.facebook.com/ConquistarHunt">Hints</a>
-      </li>
-    <li class="nav-item">
-        <a class="nav-link" href="leaderboard.php">Leaderboard</a>
-      </li>
-    <li class="nav-item">
-      <form method="post" action="logout.php"><?= csrf_field() ?><button class="nav-link btn btn-link" type="submit">Logout</button></form>
-      </li>
-    </ul>
-  </div>
-</nav>
+<?php
+$title = 'Conquistar | Leaderboard';
+require('layout/header.php');
+?>
   
 <div class="container"><center>
   <br>
@@ -112,6 +79,4 @@
   <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
-</body>
-</html>
-      
+<?php require('layout/footer.php'); ?>
