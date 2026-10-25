@@ -1,9 +1,5 @@
 # Conquistar
 
-## TODO
-- understand how it works
-    1. try making a new user without any errors.
-
 ## Local development
 
 The site lives in `php/`, which is the web root. Create a local database from
