@@ -166,6 +166,7 @@ require('layout/header.php');
 <h3>General Instructions</h3>
 <ul>
 	<li>After sign up you will receive a verification link on the email registered. Verify by clicking on the link and then login. <u>You won't be able to login unless you have verified your account.</u></li>
+	<li>Lost the email? Sign up again with the same username and email to get a new link. This keeps your first password; to change it, use <a href="reset.php">Forgot password</a>.</li>
 	<li>Also, try to use a desktop or laptops as much as possible. Some levels might require it.</li>
 </ul>
 </main>
