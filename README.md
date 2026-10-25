@@ -38,6 +38,7 @@ against a verified backup; the application does not run them:
 4. `phase2-09-member-columns.sql`
 5. `phase3-11-leaderboard-index.sql`
 6. `phase3-12-member-login-indexes.sql`
+7. `phase3-13-drop-answerlog-member-time.sql`
 
 Before step 4, verify `members.memberID` is a non-null unique/primary key and
 that existing activation/reset tokens fit within 64 characters. The migration
@@ -48,8 +49,8 @@ Before step 6, verify `logincount` and the named unique indexes are absent, and
 check for duplicate usernames and emails; resolve duplicates manually before
 adding either unique key. If any of these already exist, verify their
 definitions and skip the corresponding addition rather than rerunning it. The
-fresh schema omits `answerlog_member_time`; no upgrade migration drops that
-index, so existing databases may retain it.
+fresh schema omits `answerlog_member_time`; step 7 drops that named index only
+if it exists, leaving every other index unchanged.
 
 The canonical schema describes the tables used by the current application:
 `members`, `questions`, `answerlog`, and `request_limits`. The obsolete schema
