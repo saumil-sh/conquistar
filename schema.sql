@@ -21,7 +21,7 @@ CREATE TABLE members (
 	PRIMARY KEY (memberID),
 	UNIQUE KEY members_username (username),
 	UNIQUE KEY members_email (email),
-	KEY members_leaderboard (active, level, lastsolvetime, memberID)
+	KEY members_leaderboard (active, level, hints_used, lastsolvetime, memberID)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE questions (

@@ -416,12 +416,14 @@ try {
 	$state->execute(array(':id' => $registeredMemberId));
 	$player = $state->fetch();
 	$tieName = $username . 'tie';
+	$noHintName = $username . 'nohint';
+	$laterSolve = gmdate('Y-m-d H:i:s', strtotime($player['lastsolvetime'] . ' UTC') + 3600);
 	$inactiveName = $username . 'inactive';
 	$peerPassword = password_hash('test-password', PASSWORD_BCRYPT);
 	$insertPeer = $db->prepare("INSERT INTO members
 		(username, password, email, active, resetComplete, level, ip, institute, lastsolvetime, logincount)
 		VALUES (:username, :password, :email, :active, 'No', :level, '127.0.0.1', 'Test institute', :solved, 0)");
-	foreach (array(array($tieName, 'Yes', 2, $player['lastsolvetime']), array($inactiveName, 'No', 99, '2000-01-01 00:00:00')) as $peer) {
+	foreach (array(array($tieName, 'Yes', 2, $player['lastsolvetime']), array($noHintName, 'Yes', 2, $laterSolve), array($inactiveName, 'No', 99, '2000-01-01 00:00:00')) as $peer) {
 		$insertPeer->execute(array(
 			':username' => $peer[0],
 			':password' => $peerPassword,
@@ -432,12 +434,14 @@ try {
 		));
 		$memberIds[] = (int) $db->lastInsertId();
 	}
+	$db->prepare('UPDATE members SET hints_used = 1 WHERE username = :username')->execute(array(':username' => $tieName));
 
 	$leaderboard = e2e_request($baseUrl, 'leaderboard.php', 'GET', array(), $cookie);
 	e2e_check($leaderboard['status'] === 200, 'Leaderboard did not load.');
-	e2e_check(strpos($leaderboard['body'], 'Your rank: 1') !== false, 'Deterministic tie rank was incorrect.');
+	e2e_check(strpos($leaderboard['body'], 'Your rank: 2') !== false, 'Tie rank did not count hints before time.');
+	e2e_check(strpos($leaderboard['body'], $noHintName) < strpos($leaderboard['body'], '<td>' . $username . '</td>'), 'A player with fewer hints was not ranked first on a tie.');
 	e2e_check(strpos($leaderboard['body'], $inactiveName) === false, 'Inactive player appeared on the leaderboard.');
-	e2e_check(strpos($leaderboard['body'], $username) < strpos($leaderboard['body'], $tieName), 'Equal scores were not ordered deterministically.');
+	e2e_check(strpos($leaderboard['body'], '<td>' . $username . '</td>') < strpos($leaderboard['body'], $tieName), 'Equal scores were not ordered deterministically.');
 
 	$setInactive = $db->prepare("UPDATE members SET active = 'No' WHERE memberID = :id");
 	$setInactive->execute(array(':id' => $registeredMemberId));

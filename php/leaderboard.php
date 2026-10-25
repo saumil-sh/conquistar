@@ -14,22 +14,22 @@ require('layout/header.php');
 <?php
         	$player = null;
         	if ($user->is_logged_in()) {
-        		$stmt = $db->prepare("SELECT memberID, level, lastsolvetime FROM members WHERE memberID = :member_id AND active = 'Yes'");
+        		$stmt = $db->prepare("SELECT memberID, level, hints_used, lastsolvetime FROM members WHERE memberID = :member_id AND active = 'Yes'");
         		$stmt->execute(array(':member_id' => $_SESSION['memberID']));
         		$player = $stmt->fetch();
         	}
 
-        	$stmt = $db->query("SELECT memberID, username, level, institute, lastsolvetime
+        	$stmt = $db->query("SELECT memberID, username, level, institute, hints_used, lastsolvetime
         		FROM members
         		WHERE active = 'Yes'
-        		ORDER BY level DESC, lastsolvetime ASC, memberID ASC
+        		ORDER BY level DESC, hints_used ASC, lastsolvetime ASC, memberID ASC
         		LIMIT 50");
         	$rank = 1;
         	$hasRows = false;
 
         	echo "<table class='leaderboard'>";
         	echo "<thead><tr>";
-        	echo "<th>Rank</th><th>Name</th><th>Institution</th><th>Current Level</th><th>Time of Answer (UTC)</th>";
+        	echo "<th>Rank</th><th>Name</th><th>Institution</th><th>Current Level</th><th>Hints Used</th><th>Time of Answer (UTC)</th>";
         	echo "</tr></thead>";
         	while ($row = $stmt->fetch()) {
         		$hasRows = true;
@@ -39,6 +39,7 @@ require('layout/header.php');
         		echo "<td>" . h($row['username']) . "</td>";
         		echo "<td>" . h($row['institute']) . "</td>";
         		echo "<td>" . h($row['level']) . "</td>";
+        		echo "<td>" . h($row['hints_used']) . "</td>";
         		echo "<td>" . h($row['lastsolvetime']) . "</td>";
         		echo "</tr>";
         		$rank++;
@@ -49,18 +50,15 @@ require('layout/header.php');
         		$stmt = $db->prepare("SELECT COUNT(*) + 1
         			FROM members
         			WHERE active = 'Yes' AND (
-        				level > :player_level
-        				OR (level = :level_for_time AND lastsolvetime < :player_time)
-        				OR (level = :level_for_id AND lastsolvetime = :time_for_id AND memberID < :player_id)
+        				level > ?
+        				OR (level = ? AND hints_used < ?)
+        				OR (level = ? AND hints_used = ? AND lastsolvetime < ?)
+        				OR (level = ? AND hints_used = ? AND lastsolvetime = ? AND memberID < ?)
         			)");
-        		$stmt->execute(array(
-        			':player_level' => $player['level'],
-        			':level_for_time' => $player['level'],
-        			':player_time' => $player['lastsolvetime'],
-        			':level_for_id' => $player['level'],
-        			':time_for_id' => $player['lastsolvetime'],
-        			':player_id' => $player['memberID'],
-        		));
+        		$level = $player['level'];
+        		$hints = $player['hints_used'];
+        		$time = $player['lastsolvetime'];
+        		$stmt->execute(array($level, $level, $hints, $level, $hints, $time, $level, $hints, $time, $player['memberID']));
         		echo "<p>Your rank: " . h($stmt->fetchColumn()) . "</p>";
         	}
 

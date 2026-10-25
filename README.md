@@ -80,6 +80,7 @@ against a verified backup; the application does not run them:
 8. `phase4-17-event-state.sql`
 9. `phase4-18-quiz-master-role.sql`
 10. `phase5-19-hints.sql`
+11. `phase5-20-leaderboard-hints-index.sql`
 
 Before step 4, verify `members.memberID` is a non-null unique/primary key and
 that existing activation/reset tokens fit within 64 characters. The migration
@@ -127,7 +128,7 @@ and verifies local startup without `APP_URL`, including email links under a
 forged request `Host` header.
 
 The leaderboard includes active accounts only. It orders by highest level,
-then earliest solve time, then lowest member ID for a deterministic final tie.
+then fewest hints used, then earliest solve time, then lowest member ID for a deterministic final tie.
 It shows the first 50 players and, when you are signed in, your rank even if
 you are outside that list.
 
