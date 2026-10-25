@@ -38,14 +38,14 @@ if(isset($_POST['submit'])){
 	//email validation
 	if(!filter_var($email, FILTER_VALIDATE_EMAIL)){
 	    $error[] = 'Please enter a valid email address';
-	} else {
-		if ($canRegister) {
-			$canRegister = rate_limit_allow($db, 'activation-email', strtolower(trim($email)), 3, 3600);
-		}
 	}
 
 	//if no errors have been created carry on
 	if(!isset($error)){
+		// Only complete forms count against the per-email limit.
+		if ($canRegister) {
+			$canRegister = rate_limit_allow($db, 'activation-email', strtolower(trim($email)), 3, 3600);
+		}
 		if (!$canRegister) {
 			header('Location: registerpage.php?action=joined');
 			exit;

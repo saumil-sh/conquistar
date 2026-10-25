@@ -232,6 +232,18 @@ try {
 	$response = e2e_request($baseUrl, 'registerpage.php');
 	e2e_check($response['status'] === 200, 'Registration form did not load.');
 	$cookie = $response['cookie'];
+	foreach (array(1, 2, 3) as $attempt) {
+		$invalid = e2e_request($baseUrl, 'registerpage.php', 'POST', array(
+			'csrf_token' => e2e_csrf($response['body']),
+			'username' => $username,
+			'email' => $username . '@example.test',
+			'password' => 'old-password',
+			'passwordConfirm' => 'mistyped-password',
+			'ins' => 'Test institute',
+			'submit' => 'Register',
+		), $cookie);
+		e2e_check($invalid['status'] === 200 && strpos($invalid['body'], 'Passwords do not match.') !== false, 'A mistyped registration was not rejected.');
+	}
 	$response = e2e_request($baseUrl, 'registerpage.php', 'POST', array(
 		'csrf_token' => e2e_csrf($response['body']),
 		'username' => $username,
