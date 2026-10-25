@@ -98,9 +98,11 @@ Write the player-facing clue here.
 ```
 
 Use one `id`, `title`, and `answer`; repeat `hint` or `media` as needed. Image
-references must use an ID in `includes/media-catalog.php`, and HTML or external
-image URLs are rejected. This format is deliberately limited; the existing 23
-HTML questions and their media are unchanged until the later content migration.
+references must use an ID in `includes/media-catalog.php`; HTML, external or
+reference-style images, and reference-style links are rejected. Inline links
+allow only `https`, `http`, `mailto`, or local fragments. This format is
+deliberately limited; the existing 23 HTML questions and their media are
+unchanged until the later content migration.
 
 Keep authored files outside both the repository and the web document root. The
 CLI enforces both boundaries; setting a different `QUESTION_WEB_ROOT` cannot

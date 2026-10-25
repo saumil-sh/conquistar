@@ -46,7 +46,7 @@ function question_authoring_command($contentRoot, $webRoot)
 	return array('status' => proc_close($process), 'output' => $output);
 }
 
-$valid = "---\nid: sample-lunar\ntitle: Sample clue\nanswer: Example answer\nhint: First hint\nhint: Second hint\nmedia: fb\n---\n# Sample clue\nFind the answer.\n\n![An example image](media:fb)\n";
+$valid = "---\nid: sample-lunar\ntitle: Sample clue\nanswer: Example answer\nhint: First hint\nhint: Second hint\nmedia: fb\n---\n# Sample clue\nFind the answer.\n\n![An example image](media:fb)\n[Safe link](https://example.test/path)\n";
 $runtimeBase = __DIR__ . '/.runtime';
 $createdRuntimeBase = false;
 if (!is_dir($runtimeBase)) {
@@ -78,6 +78,10 @@ try {
 		str_replace('media: fb', 'media: /etc/passwd', $valid),
 		str_replace('media:fb', 'media:unknown', $valid),
 		str_replace('# Sample clue', '<script>alert(1)</script>', $valid),
+		str_replace('![An example image](media:fb)', '![External image][remote]', $valid) . "\n[remote]: https://example.test/image.png\n",
+		str_replace('[Safe link](https://example.test/path)', '[Unsafe link](javascript:alert(1))', $valid),
+		str_replace('[Safe link](https://example.test/path)', '[Unsafe link](data:text/html,hello)', $valid),
+		str_replace('[Safe link](https://example.test/path)', "[remote]: javascript:alert(1)\n", $valid),
 		$valid . str_repeat('x', 25001),
 	);
 	foreach ($invalid as $source) {

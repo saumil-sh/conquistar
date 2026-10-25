@@ -73,6 +73,19 @@ function parse_question_markdown($source, array $mediaCatalog)
 	if (preg_match('/!\[[^\]\n]*\]\((?!media:)[^)]+\)/', $body)) {
 		throw new InvalidArgumentException('Images must use an approved media ID.');
 	}
+	$bodyWithoutMedia = preg_replace('/!\[[^\]\n]*\]\(media:[a-z0-9]+(?:-[a-z0-9]+)*\)/', '', $body);
+	if (strpos($bodyWithoutMedia, '![') !== false
+		|| preg_match('/^\s{0,3}\[[^\]\n]+\]:/m', $body)
+		|| preg_match('/(?<!\!)\[[^\]\n]+\]\s*\[[^\]\n]*\]/', $body)) {
+		throw new InvalidArgumentException('Reference-style Markdown images and links are not supported.');
+	}
+	if (preg_match_all('/(?<!\!)\[[^\]\n]+\]\(([^)\n]*)\)/', $body, $links)) {
+		foreach ($links[1] as $target) {
+			if (!preg_match('/\A(?:https?:\/\/[^\s<>]+|mailto:[^\s<>]+|#[A-Za-z0-9_-]+)\z/i', $target)) {
+				throw new InvalidArgumentException('Markdown links must use https, http, mailto, or a local fragment.');
+			}
+		}
+	}
 
 	$fields['body'] = $body;
 	return $fields;
