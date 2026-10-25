@@ -363,6 +363,18 @@ try {
 	e2e_check((int) $state->fetchColumn() === 1, 'Answer replay advanced the player again.');
 	e2e_check(strpos($replayResponse['body'], 'Wrong Answer') !== false, 'Answer replay was not rejected.');
 
+	$db->prepare('UPDATE members SET quiz_master = 1 WHERE memberID = :id')->execute(array(':id' => $registeredMemberId));
+	$eventUpdate->execute(array(':is_open' => 0));
+	$response = e2e_request($baseUrl, 'quizmaster.php', 'GET', array(), $cookie);
+	e2e_check(strpos($response['body'], 'Level 1 has no answer in the questions table.') !== false, 'A page without an answer was not listed for the quiz master.');
+	$refusedOpen = e2e_request($baseUrl, 'quizmaster.php', 'POST', array(
+		'csrf_token' => e2e_csrf($response['body']),
+		'event_action' => 'open',
+	), $cookie);
+	e2e_check($refusedOpen['status'] === 409 && (int) $db->query('SELECT is_open FROM event_state WHERE singleton_id = 1')->fetchColumn() === 0, 'The event opened while a level had no answer.');
+	$eventUpdate->execute(array(':is_open' => 1));
+	$db->prepare('UPDATE members SET quiz_master = 0 WHERE memberID = :id')->execute(array(':id' => $registeredMemberId));
+
 	$stmt = $db->prepare('INSERT INTO questions (qID, Answer) VALUES (1, :answer)');
 	$stmt->execute(array(':answer' => $testAnswerHash));
 	$questionLevelOneTouched = true;

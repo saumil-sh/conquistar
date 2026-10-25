@@ -52,6 +52,27 @@ function available_question_pages() {
 	}));
 }
 
+// Players move through q_0, q_1, ... in order, so a missing page or answer would leave them stuck.
+function question_setup_problems(PDO $db) {
+	$levels = array_map(function ($path) {
+		return (int) substr(basename($path), 2, -5);
+	}, available_question_pages());
+	sort($levels);
+	if (!$levels) {
+		return array('No question pages were found in questions/.');
+	}
+	$answered = array_map('intval', $db->query('SELECT qID FROM questions')->fetchAll(PDO::FETCH_COLUMN));
+	$problems = array();
+	foreach (range(0, max($levels)) as $level) {
+		if (!in_array($level, $levels, true)) {
+			$problems[] = "Page questions/q_$level.html is missing.";
+		} elseif (!in_array($level, $answered, true)) {
+			$problems[] = "Level $level has no answer in the questions table.";
+		}
+	}
+	return $problems;
+}
+
 function is_quiz_master(PDO $db, $memberId) {
 	$memberId = filter_var($memberId, FILTER_VALIDATE_INT);
 	if ($memberId === false || $memberId < 1) {
