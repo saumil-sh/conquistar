@@ -60,6 +60,9 @@ the intended operator's account, grant quiz-master access directly to that
 member ID with a controlled database change; the application never grants this
 role through registration. Access is checked against the database on every
 request.
+Players can delete their account from the dashboard. The deletion request is
+CSRF-protected, requires the signed-in session, and removes the member and
+answer history in one transaction.
 
 The canonical schema describes the tables used by the current application:
 `members`, `questions`, `answerlog`, `request_limits`, and `event_state`. The

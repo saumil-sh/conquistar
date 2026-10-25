@@ -40,6 +40,7 @@ require('layout/header.php');
 				</p>
 				<p>Need a hint? Visit the <a href="https://www.facebook.com/ConquistarHunt" target="_blank" rel="noopener noreferrer">community hints</a>.</p>
 				<p>Account email: <?php echo h($res["email"]); ?></p>
+				<p><a href="delete-account.php">Delete my account</a></p>
 				<?php if ($isQuizMaster): ?>
 					<p><a href="quizmaster.php">Manage event</a></p>
 				<?php endif; ?>

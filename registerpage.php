@@ -158,6 +158,9 @@ require('layout/header.php');
 				if(isset($_GET['action']) && $_GET['action'] == 'joined'){
 					echo "<div class='alert alert-success'>If registration can be completed with those details, you will receive an activation link.</div>";
 				}
+				if(isset($_GET['action']) && $_GET['action'] == 'deleted'){
+					echo "<div class='alert alert-success'>Your account and answer history have been deleted.</div>";
+				}
 				?>
 
 				<div class="form-group">
