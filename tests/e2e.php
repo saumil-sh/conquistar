@@ -57,6 +57,7 @@ $username = 'e2e' . bin2hex(random_bytes(5));
 $registeredMemberId = null;
 $questionTouched = false;
 $questionLevelOneTouched = false;
+$questionPagePaths = array();
 $testDataPrepared = false;
 $originalEventOpen = null;
 $eventStateTouched = false;
@@ -249,6 +250,27 @@ try {
 	e2e_check($response['status'] === 302, 'Login failed after activation.');
 	$cookie = $response['cookie'];
 	$response = e2e_request($baseUrl, 'process.php', 'GET', array(), $cookie);
+	e2e_check(strpos($response['body'], 'temporarily unavailable while questions are being updated') !== false, 'Retired puzzles were not reported as unavailable.');
+	e2e_check(strpos($response['body'], '<form action="process.php" method="post">') === false, 'A retired puzzle still rendered an answer form.');
+	$unavailableAnswer = e2e_request($baseUrl, 'process.php', 'POST', array(
+		'csrf_token' => e2e_csrf($response['body']),
+		'ans' => 'testanswer',
+	), $cookie);
+	e2e_check($unavailableAnswer['status'] === 200 && strpos($unavailableAnswer['body'], 'temporarily unavailable while questions are being updated') !== false, 'A retired puzzle accepted an answer submission.');
+	$closedState = $db->prepare('SELECT level FROM members WHERE memberID = :id');
+	$closedState->execute(array(':id' => $registeredMemberId));
+	e2e_check((int) $closedState->fetchColumn() === 0, 'A retired puzzle advanced the player.');
+	$answerCount = $db->prepare('SELECT COUNT(*) FROM answerlog WHERE memberID = :id');
+	$answerCount->execute(array(':id' => $registeredMemberId));
+	e2e_check((int) $answerCount->fetchColumn() === 0, 'A retired puzzle recorded an answer attempt.');
+
+	foreach (array(0, 1) as $testLevel) {
+		$questionPath = $root . '/questions/q_' . $testLevel . '.html';
+		e2e_check(!file_exists($questionPath) && !is_link($questionPath), 'Test question path already exists.');
+		e2e_check(file_put_contents($questionPath, '<p>Test-only question.</p>', LOCK_EX) !== false, 'Could not create a temporary test question.');
+		$questionPagePaths[] = $questionPath;
+	}
+	$response = e2e_request($baseUrl, 'process.php', 'GET', array(), $cookie);
 	$eventUpdate->execute(array(':is_open' => 0));
 	$closedAnswer = e2e_request($baseUrl, 'process.php', 'POST', array(
 		'csrf_token' => e2e_csrf($response['body']),
@@ -256,10 +278,8 @@ try {
 	), $cookie);
 	e2e_check($closedAnswer['status'] === 200 && strpos($closedAnswer['body'], 'The event is closed.') !== false, 'An answer was not rejected while the event was closed.');
 	e2e_check(strpos($closedAnswer['body'], '<form action="process.php" method="post">') === false, 'A closed event still rendered an answer form.');
-	$closedState = $db->prepare('SELECT level FROM members WHERE memberID = :id');
 	$closedState->execute(array(':id' => $registeredMemberId));
 	e2e_check((int) $closedState->fetchColumn() === 0, 'A closed event advanced the player.');
-	$answerCount = $db->prepare('SELECT COUNT(*) FROM answerlog WHERE memberID = :id');
 	$answerCount->execute(array(':id' => $registeredMemberId));
 	e2e_check((int) $answerCount->fetchColumn() === 0, 'A closed event recorded an answer attempt.');
 	$eventUpdate->execute(array(':is_open' => 1));
@@ -308,13 +328,13 @@ try {
 	e2e_check((int) $db->query('SELECT is_open FROM event_state WHERE singleton_id = 1')->fetchColumn() === 1, 'Could not reopen the test event after the mid-request close.');
 
 	$response = e2e_request($baseUrl, 'media.php?file=fb', 'GET', array(), $cookie);
-	e2e_check($response['status'] === 403, 'Media was exposed before its level.');
+	e2e_check($response['status'] === 404, 'Retired question media remained available.');
 	$unauthenticatedMedia = e2e_request($baseUrl, 'media.php?file=fb');
-	e2e_check($unauthenticatedMedia['status'] === 403, 'Media was exposed without a player session.');
+	e2e_check($unauthenticatedMedia['status'] === 404, 'Retired question media remained available without a session.');
 	$update = $db->prepare('UPDATE members SET level = 2 WHERE memberID = :id');
 	$update->execute(array(':id' => $registeredMemberId));
-	$authorizedMedia = e2e_request($baseUrl, 'media.php?file=fb', 'GET', array(), $cookie);
-	e2e_check($authorizedMedia['status'] === 200, 'Unlocked media was not available to its player.');
+	$mediaAfterFormerUnlock = e2e_request($baseUrl, 'media.php?file=fb', 'GET', array(), $cookie);
+	e2e_check($mediaAfterFormerUnlock['status'] === 404, 'Retired media remained available after the player reached its former unlock level.');
 	$privateRuntime = e2e_request($baseUrl, 'tests/.runtime/mail.jsonl');
 	e2e_check($privateRuntime['status'] === 404, 'Test mail capture was reachable over HTTP.');
 
@@ -403,7 +423,7 @@ try {
 	$remainingMember = $db->prepare('SELECT COUNT(*) FROM members WHERE memberID = :id');
 	$remainingMember->execute(array(':id' => $registeredMemberId));
 	e2e_check((int) $remainingMember->fetchColumn() === 0, 'The stale-session test account was not deleted.');
-	echo "Registration, activation, login, reset, answer, media access, rankings, and stale-session rejection passed.\n";
+	echo "Registration, activation, login, reset, retired-content gating, answer flow, rankings, and stale-session rejection passed.\n";
 } catch (Throwable $e) {
 	fwrite(STDERR, "End-to-end test failed: " . $e->getMessage() . "\n");
 	$exitCode = 1;
@@ -411,6 +431,12 @@ try {
 	if (is_resource($server)) {
 		proc_terminate($server);
 		proc_close($server);
+	}
+	foreach ($questionPagePaths as $questionPath) {
+		if (file_exists($questionPath) && !unlink($questionPath)) {
+			fwrite(STDERR, "Temporary question cleanup failed; remove the exact test question file.\n");
+			$exitCode = 1;
+		}
 	}
 	if ($db instanceof PDO && $closeEventTriggerCreated) {
 		try {

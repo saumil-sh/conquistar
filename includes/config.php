@@ -34,6 +34,13 @@ function game_event_is_open(PDO $db) {
 	return (int) $stmt->fetchColumn() === 1;
 }
 
+function available_question_pages() {
+	$paths = glob(dirname(__DIR__) . '/questions/q_*.html') ?: array();
+	return array_values(array_filter($paths, function ($path) {
+		return preg_match('/\Aq_[0-9]+\.html\z/D', basename($path)) === 1;
+	}));
+}
+
 function is_quiz_master(PDO $db, $memberId) {
 	$memberId = filter_var($memberId, FILTER_VALIDATE_INT);
 	if ($memberId === false || $memberId < 1) {

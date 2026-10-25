@@ -47,6 +47,8 @@ function question_authoring_command($contentRoot, $webRoot)
 }
 
 $valid = "---\nid: sample-lunar\ntitle: Sample clue\nanswer: Example answer\nhint: First hint\nhint: Second hint\nmedia: fb\n---\n# Sample clue\nFind the answer.\n\n![An example image](media:fb)\n[Safe link](https://example.test/path)\n";
+$valid = str_replace("media: fb\n", '', $valid);
+$valid = str_replace("\n\n![An example image](media:fb)", '', $valid);
 $runtimeBase = __DIR__ . '/.runtime';
 $createdRuntimeBase = false;
 if (!is_dir($runtimeBase)) {
@@ -69,16 +71,29 @@ try {
 	$bomQuestion = parse_question_markdown("\xEF\xBB\xBF" . $valid, $mediaCatalog);
 	question_authoring_check($question['id'] === 'sample-lunar'
 		&& count($question['hints']) === 2
-		&& $question['media'] === array('fb')
+		&& $question['media'] === array()
 		&& $bomQuestion['id'] === $question['id'], 'Valid Markdown or BOM-prefixed question was not parsed.');
+
+	$testMediaCatalog = array('test-image' => array('images/test.png', 0, 'image/png'));
+	$mediaQuestionSource = str_replace(
+		"hint: Second hint\n",
+		"hint: Second hint\nmedia: test-image\n",
+		str_replace(
+			'Find the answer.',
+			'Find the answer. ![An example image](media:test-image)',
+			$valid
+		)
+	);
+	$mediaQuestion = parse_question_markdown($mediaQuestionSource, $testMediaCatalog);
+	question_authoring_check($mediaQuestion['media'] === array('test-image'), 'Approved media ID was not parsed.');
 
 	$invalid = array(
 		str_replace("answer: Example answer\n", '', $valid),
 		str_replace('id: sample-lunar', 'id: ../sample', $valid),
-		str_replace('media: fb', 'media: /etc/passwd', $valid),
-		str_replace('media:fb', 'media:unknown', $valid),
+		str_replace("hint: Second hint\n", "hint: Second hint\nmedia: unknown\n", $valid),
+		str_replace('Find the answer.', '![Unknown image](media:unknown)', $valid),
 		str_replace('# Sample clue', '<script>alert(1)</script>', $valid),
-		str_replace('![An example image](media:fb)', '![External image][remote]', $valid) . "\n[remote]: https://example.test/image.png\n",
+		str_replace('Find the answer.', '![External image][remote]', $valid) . "\n[remote]: https://example.test/image.png\n",
 		str_replace('[Safe link](https://example.test/path)', '[Unsafe link](javascript:alert(1))', $valid),
 		str_replace('[Safe link](https://example.test/path)', '[Unsafe link](data:text/html,hello)', $valid),
 		str_replace('[Safe link](https://example.test/path)', "[remote]: javascript:alert(1)\n", $valid),

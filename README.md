@@ -112,20 +112,20 @@ title: Sample clue
 answer: Example answer
 hint: First example hint
 hint: Second example hint
-media: fb
 ---
 # Sample clue
 
 Write the player-facing clue here.
-![Example image](media:fb)
 ```
 
 Use one `id`, `title`, and `answer`; repeat `hint` or `media` as needed. Image
 references must use an ID in `includes/media-catalog.php`; HTML, external or
 reference-style images, and reference-style links are rejected. Inline links
 allow only `https`, `http`, `mailto`, or local fragments. This format is
-deliberately limited; the existing 23 HTML questions and their media are
-unchanged until the later content migration.
+deliberately limited. Legacy question pages and their media have been moved to
+the private `legacy-retired` archive under `QUESTION_CONTENT_DIR` and removed
+from repository history. The player and quiz-master flows report that no
+questions are available until new player-facing content is ready.
 
 Keep authored files outside both the repository and the web document root. The
 CLI enforces both boundaries; setting a different `QUESTION_WEB_ROOT` cannot
@@ -150,9 +150,9 @@ php tools/questions.php publish sample-lunar
 ```
 
 Preview is terminal-only and includes the answer and hints for the quiz master.
-Publishing validates the file and moves it into the private release queue;
-the current player flow continues to serve the existing HTML questions until
-the later content migration. No Markdown answers or drafts are served publicly.
+Publishing validates the file and moves it into the private release queue; it
+does not yet make Markdown content available to players. No Markdown answers
+or drafts are served publicly.
 
 The database-independent checks are `php tests/test_db_guard_test.php` and
 `php tests/question_authoring_test.php`. The end-to-end suite is separate because

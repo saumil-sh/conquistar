@@ -50,9 +50,17 @@
 			exit;
 		}
         $_SESSION["userlevel"]=$res["level"];
-        $eventOpen = game_event_is_open($db);
-    if($eventOpen && is_string($_POST['ans'] ?? null) && $_POST['ans'] !== '')
-        {
+		$questionPages = available_question_pages();
+		$totalQuestions = count($questionPages);
+		$questionLevel = filter_var($res['level'], FILTER_VALIDATE_INT);
+		$questionPath = $questionLevel !== false && $questionLevel >= 0
+		    ? __DIR__ . '/questions/q_' . $questionLevel . '.html'
+		    : '';
+		$hasCurrentQuestion = $questionPath !== '' && is_file($questionPath);
+		$isComplete = $totalQuestions > 0 && $questionLevel !== false && $questionLevel >= $totalQuestions;
+		$eventOpen = game_event_is_open($db);
+    if($eventOpen && $hasCurrentQuestion && is_string($_POST['ans'] ?? null) && $_POST['ans'] !== '')
+		{
             $answer = $_POST['ans'];
             $clientIp = is_string($_SERVER['REMOTE_ADDR'] ?? null) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
             $canGuess = rate_limit_allow($db, 'guess-member', (string) $res['memberID'], 15, 60);
@@ -95,17 +103,16 @@
         }
     echo "<br/>";
     echo "<h2 align='center'>Welcome <b>".h($res['username'])."</b><br/><br/></h2>";
-    $questionLevel = filter_var($res['level'], FILTER_VALIDATE_INT);
-    $questionPath = $questionLevel !== false && $questionLevel >= 0
-        ? __DIR__ . '/questions/q_' . $questionLevel . '.html'
-        : '';
-    $hasCurrentQuestion = $questionPath !== '' && is_file($questionPath);
     if (!$eventOpen) {
         echo '<p>The event is closed.</p>';
+    } elseif ($totalQuestions === 0) {
+        echo '<p>The quiz is temporarily unavailable while questions are being updated.</p>';
+    } elseif ($isComplete) {
+        echo '<p>You have completed every puzzle. Congratulations!</p>';
     } elseif ($hasCurrentQuestion) {
         readfile($questionPath);
     } else {
-        echo '<p>You have completed every puzzle. Congratulations!</p>';
+        echo '<p>This puzzle is currently unavailable.</p>';
     }
 	    
 	    
