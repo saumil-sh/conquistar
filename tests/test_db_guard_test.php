@@ -2,11 +2,13 @@
 require_once(__DIR__ . '/test_db_guard.php');
 
 $cases = array(
-	array('test', 'test', true),
 	array('test_phase3', 'test_phase3', true),
+	array('test_phase3_ci2', 'test_phase3_ci2', true),
+	array('test', 'test', false),
+	array('test_', 'test_', false),
 	array('production', 'production', false),
 	array('test_phase3', 'production', false),
-	array('', 'test', false),
+	array('', 'test_phase3', false),
 	array('test-name', 'test-name', false),
 );
 

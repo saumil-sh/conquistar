@@ -49,12 +49,12 @@ dumps also described `levels` and `levelstats`; those tables are omitted here
 because the current application does not use them. This file does not drop or
 alter any existing table or data.
 
-Database tests must use an explicitly named `test` or `test_*` database. They
-refuse to run unless `TEST_DB_NAME` and `DB_NAME` match; the end-to-end runner
-also requires a loopback database host. Set `DB_NAME` for the application
+Database tests require an explicitly named `test_*` database (bare `test` is
+rejected) and matching `TEST_DB_NAME` and `DB_NAME`. The end-to-end runner also
+requires a loopback database host. Set `DB_NAME` for the application
 connection rather than editing the schema or migration files.
 
-To run end-to-end checks, first create an isolated, empty test database and
+To run end-to-end checks, first create an isolated, empty `test_*` database and
 apply `schema.sql` to it. Set `DB_NAME` and `TEST_DB_NAME` to that same test
 database, set `TEST_DB_HOST=localhost`, and provide only test credentials
 through `TEST_DB_USER` and `TEST_DB_PASSWORD`. Then run

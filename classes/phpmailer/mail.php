@@ -34,7 +34,7 @@ class Mail extends PhpMailer
             if (PHP_SAPI !== 'cli-server'
                 || !defined('DBNAME')
                 || !is_string($testDatabase)
-                || preg_match('/\Atest(?:_[A-Za-z0-9]+)*\z/D', $testDatabase) !== 1
+                || preg_match('/\Atest(?:_[A-Za-z0-9]+)+\z/D', $testDatabase) !== 1
                 || DBNAME !== $testDatabase
                 || $runtimeDirectory === false
                 || $capturePath !== $runtimeDirectory . '/mail.jsonl') {
