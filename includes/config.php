@@ -34,6 +34,16 @@ function game_event_is_open(PDO $db) {
 	return (int) $stmt->fetchColumn() === 1;
 }
 
+function is_quiz_master(PDO $db, $memberId) {
+	$memberId = filter_var($memberId, FILTER_VALIDATE_INT);
+	if ($memberId === false || $memberId < 1) {
+		return false;
+	}
+	$stmt = $db->prepare("SELECT quiz_master FROM members WHERE memberID = :member_id AND active = 'Yes'");
+	$stmt->execute(array(':member_id' => $memberId));
+	return (int) $stmt->fetchColumn() === 1;
+}
+
 $csrfSessionMissing = !isset($_SESSION['csrf_token']);
 if ($csrfSessionMissing) {
 	$_SESSION['csrf_token'] = bin2hex(random_bytes(32));

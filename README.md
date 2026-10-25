@@ -40,6 +40,7 @@ against a verified backup; the application does not run them:
 6. `phase3-12-member-login-indexes.sql`
 7. `phase3-13-drop-answerlog-member-time.sql`
 8. `phase4-17-event-state.sql`
+9. `phase4-18-quiz-master-role.sql`
 
 Before step 4, verify `members.memberID` is a non-null unique/primary key and
 that existing activation/reset tokens fit within 64 characters. The migration
@@ -54,6 +55,11 @@ fresh schema omits `answerlog_member_time`; step 7 drops that named index only
 if it exists, leaving every other index unchanged. The event begins closed in a
 fresh schema and in step 8; a quiz master must open it before players can
 continue.
+Step 9 gives every existing account the non-privileged default. After verifying
+the intended operator's account, grant quiz-master access directly to that
+member ID with a controlled database change; the application never grants this
+role through registration. Access is checked against the database on every
+request.
 
 The canonical schema describes the tables used by the current application:
 `members`, `questions`, `answerlog`, `request_limits`, and `event_state`. The

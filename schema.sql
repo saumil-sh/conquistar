@@ -16,6 +16,7 @@ CREATE TABLE members (
 	institute VARCHAR(100) NOT NULL,
 	lastsolvetime DATETIME(6) NOT NULL,
 	logincount INT(11) NOT NULL DEFAULT 0,
+	quiz_master TINYINT UNSIGNED NOT NULL DEFAULT 0,
 	PRIMARY KEY (memberID),
 	UNIQUE KEY members_username (username),
 	UNIQUE KEY members_email (email),

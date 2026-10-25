@@ -39,7 +39,8 @@
 		$stmt->execute(array(':username' => $_SESSION['username']));
         $res = $stmt->fetch();
         $_SESSION["userlevel"]=$res["level"];
-    if(is_string($_POST['ans'] ?? null) && $_POST['ans'] !== '')
+        $eventOpen = game_event_is_open($db);
+    if($eventOpen && is_string($_POST['ans'] ?? null) && $_POST['ans'] !== '')
         {
             $answer = $_POST['ans'];
             $clientIp = is_string($_SERVER['REMOTE_ADDR'] ?? null) ? $_SERVER['REMOTE_ADDR'] : 'unknown';
@@ -64,29 +65,42 @@
                 $res2 = $stmt->fetch();
 
                 if ($res2 && $genpass->password_verify($gans, $res2['Answer'])) {
-                    $stmt = $db->prepare("UPDATE members SET level = level + 1, lastsolvetime = ADDTIME(NOW(), '5:30:00') WHERE memberID = :member_id AND active = 'Yes' AND level = :level");
+                    $stmt = $db->prepare("UPDATE members SET level = level + 1, lastsolvetime = ADDTIME(NOW(), '5:30:00') WHERE memberID = :member_id AND active = 'Yes' AND level = :level AND EXISTS (SELECT 1 FROM event_state WHERE singleton_id = 1 AND is_open = 1)");
                     $stmt->execute(array(':member_id' => $res['memberID'], ':level' => $res['level']));
-                    header('Location: process.php');
-                    exit;
+                    if ($stmt->rowCount() === 1) {
+                        header('Location: process.php');
+                        exit;
+                    }
+                    if (!game_event_is_open($db)) {
+                        echo "The event is closed.";
+                    } else {
+                        echo "The game state changed. Reload before trying again.";
+                    }
+                } else {
+                    echo "Wrong Answer";
                 }
-
-                echo "Wrong Answer";
             }
         }
     echo "<br/>";
     echo "<h2 align='center'>Welcome <b>".h($res['username'])."</b><br/><br/></h2>";
     $questionLevel = filter_var($res['level'], FILTER_VALIDATE_INT);
-    if ($questionLevel !== false && $questionLevel >= 0) {
-        $questionPath = __DIR__ . '/questions/q_' . $questionLevel . '.html';
-        if (is_file($questionPath)) {
-            readfile($questionPath);
-        }
+    $questionPath = $questionLevel !== false && $questionLevel >= 0
+        ? __DIR__ . '/questions/q_' . $questionLevel . '.html'
+        : '';
+    $hasCurrentQuestion = $questionPath !== '' && is_file($questionPath);
+    if (!$eventOpen) {
+        echo '<p>The event is closed.</p>';
+    } elseif ($hasCurrentQuestion) {
+        readfile($questionPath);
+    } else {
+        echo '<p>You have completed every puzzle. Congratulations!</p>';
     }
 	    
 	    
 		
 require('layout/footer.php'); 
 ?>
+<?php if ($eventOpen && $hasCurrentQuestion): ?>
 <form action="process.php" method="post">
                         <?= csrf_field() ?>
 
@@ -109,3 +123,4 @@ require('layout/footer.php');
 		</div>
 <script src="js/jquery.js"></script>
 <script src="js/bootstrap.min.js"></script>
+		<?php endif; ?>

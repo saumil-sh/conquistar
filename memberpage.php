@@ -14,6 +14,7 @@ $totalQuestions = count(array_filter($questionPages, function ($path) {
 $solvedQuestions = min($level, $totalQuestions);
 $isComplete = $totalQuestions > 0 && $level >= $totalQuestions;
 $eventOpen = game_event_is_open($db);
+$isQuizMaster = is_quiz_master($db, $_SESSION['memberID'] ?? null);
 require('layout/header.php');
 ?>
 
@@ -39,6 +40,9 @@ require('layout/header.php');
 				</p>
 				<p>Need a hint? Visit the <a href="https://www.facebook.com/ConquistarHunt" target="_blank" rel="noopener noreferrer">community hints</a>.</p>
 				<p>Account email: <?php echo h($res["email"]); ?></p>
+				<?php if ($isQuizMaster): ?>
+					<p><a href="quizmaster.php">Manage event</a></p>
+				<?php endif; ?>
 				<h3><a href="leaderboard.php">Leaderboard</a></h3>
 				<form method="post" action="logout.php">
 					<?= csrf_field() ?>
