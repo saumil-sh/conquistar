@@ -29,6 +29,11 @@ function csrf_is_valid() {
 		&& hash_equals($_SESSION['csrf_token'], $_POST['csrf_token']);
 }
 
+function game_event_is_open(PDO $db) {
+	$stmt = $db->query('SELECT is_open FROM event_state WHERE singleton_id = 1');
+	return (int) $stmt->fetchColumn() === 1;
+}
+
 $csrfSessionMissing = !isset($_SESSION['csrf_token']);
 if ($csrfSessionMissing) {
 	$_SESSION['csrf_token'] = bin2hex(random_bytes(32));

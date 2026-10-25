@@ -39,6 +39,7 @@ against a verified backup; the application does not run them:
 5. `phase3-11-leaderboard-index.sql`
 6. `phase3-12-member-login-indexes.sql`
 7. `phase3-13-drop-answerlog-member-time.sql`
+8. `phase4-17-event-state.sql`
 
 Before step 4, verify `members.memberID` is a non-null unique/primary key and
 that existing activation/reset tokens fit within 64 characters. The migration
@@ -50,13 +51,15 @@ check for duplicate usernames and emails; resolve duplicates manually before
 adding either unique key. If any of these already exist, verify their
 definitions and skip the corresponding addition rather than rerunning it. The
 fresh schema omits `answerlog_member_time`; step 7 drops that named index only
-if it exists, leaving every other index unchanged.
+if it exists, leaving every other index unchanged. The event begins closed in a
+fresh schema and in step 8; a quiz master must open it before players can
+continue.
 
 The canonical schema describes the tables used by the current application:
-`members`, `questions`, `answerlog`, and `request_limits`. The obsolete schema
-dumps also described `levels` and `levelstats`; those tables are omitted here
-because the current application does not use them. This file does not drop or
-alter any existing table or data.
+`members`, `questions`, `answerlog`, `request_limits`, and `event_state`. The
+obsolete schema dumps also described `levels` and `levelstats`; those tables
+are omitted here because the current application does not use them. This file
+does not drop or alter any existing table or data.
 
 Database tests require an explicitly named `test_*` database (bare `test` is
 rejected) and matching `TEST_DB_NAME` and `DB_NAME`. The end-to-end runner also
