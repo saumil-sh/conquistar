@@ -57,6 +57,8 @@ $username = 'e2e' . bin2hex(random_bytes(5));
 $registeredMemberId = null;
 $questionTouched = false;
 $testDataPrepared = false;
+$originalEventOpen = null;
+$eventStateTouched = false;
 $exitCode = 0;
 
 function e2e_check($condition, $message)
@@ -138,6 +140,15 @@ try {
 		e2e_check($count === 0, 'Use a fresh, isolated test database with empty ' . $table . '.');
 	}
 	$testDataPrepared = true;
+	$eventStateRows = (int) $db->query('SELECT COUNT(*) FROM event_state')->fetchColumn();
+	e2e_check($eventStateRows === 1, 'The isolated test database must contain its single event-state row.');
+	$initialEventOpen = $db->query('SELECT is_open FROM event_state WHERE singleton_id = 1')->fetchColumn();
+	e2e_check($initialEventOpen !== false && in_array((string) $initialEventOpen, array('0', '1'), true), 'The isolated test database event state is invalid.');
+	$originalEventOpen = (int) $initialEventOpen;
+	$eventStateTouched = true;
+	$eventUpdate = $db->prepare('UPDATE event_state SET is_open = :is_open WHERE singleton_id = 1');
+	$eventUpdate->execute(array(':is_open' => 1));
+	e2e_check((int) $db->query('SELECT is_open FROM event_state WHERE singleton_id = 1')->fetchColumn() === 1, 'Could not open the test event.');
 
 	$testAnswerHash = password_hash('testanswer', PASSWORD_BCRYPT);
 	$stmt = $db->prepare('INSERT INTO questions (qID, Answer) VALUES (0, :answer)');
@@ -211,6 +222,22 @@ try {
 	), $cookie);
 	e2e_check($response['status'] === 302, 'Login failed after activation.');
 	$cookie = $response['cookie'];
+	$response = e2e_request($baseUrl, 'process.php', 'GET', array(), $cookie);
+	$eventUpdate->execute(array(':is_open' => 0));
+	$closedAnswer = e2e_request($baseUrl, 'process.php', 'POST', array(
+		'csrf_token' => e2e_csrf($response['body']),
+		'ans' => 'testanswer',
+	), $cookie);
+	e2e_check($closedAnswer['status'] === 200 && strpos($closedAnswer['body'], 'The event is closed.') !== false, 'An answer was not rejected while the event was closed.');
+	e2e_check(strpos($closedAnswer['body'], '<form action="process.php" method="post">') === false, 'A closed event still rendered an answer form.');
+	$closedState = $db->prepare('SELECT level FROM members WHERE memberID = :id');
+	$closedState->execute(array(':id' => $registeredMemberId));
+	e2e_check((int) $closedState->fetchColumn() === 0, 'A closed event advanced the player.');
+	$answerCount = $db->prepare('SELECT COUNT(*) FROM answerlog WHERE memberID = :id');
+	$answerCount->execute(array(':id' => $registeredMemberId));
+	e2e_check((int) $answerCount->fetchColumn() === 0, 'A closed event recorded an answer attempt.');
+	$eventUpdate->execute(array(':is_open' => 1));
+	e2e_check((int) $db->query('SELECT is_open FROM event_state WHERE singleton_id = 1')->fetchColumn() === 1, 'Could not reopen the test event.');
 	$response = e2e_request($baseUrl, 'process.php', 'GET', array(), $cookie);
 	$response = e2e_request($baseUrl, 'process.php', 'POST', array(
 		'csrf_token' => e2e_csrf($response['body']),
@@ -312,6 +339,16 @@ try {
 	if (is_resource($server)) {
 		proc_terminate($server);
 		proc_close($server);
+	}
+	if ($db instanceof PDO && $eventStateTouched && $originalEventOpen !== null) {
+		try {
+			$restoreEvent = $db->prepare('UPDATE event_state SET is_open = :is_open WHERE singleton_id = 1');
+			$restoreEvent->execute(array(':is_open' => $originalEventOpen));
+			e2e_check((int) $db->query('SELECT is_open FROM event_state WHERE singleton_id = 1')->fetchColumn() === $originalEventOpen, 'Could not restore the original event state.');
+		} catch (Throwable $e) {
+			fwrite(STDERR, "Test event-state cleanup failed; inspect only the isolated test database.\n");
+			$exitCode = 1;
+		}
 	}
 	if ($db instanceof PDO && $testDataPrepared) {
 		try {
