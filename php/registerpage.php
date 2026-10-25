@@ -14,16 +14,12 @@ if(isset($_POST['submit'])){
 	$canRegister = rate_limit_allow($db, 'activation-ip', $clientIp, 250, 3600);
 
 	//very basic validation
-	if(strlen($username) < 3){
-		$error[] = 'Username is too short.';
+	if(!matches_rule($username, USERNAME_PATTERN)){
+		$error[] = USERNAME_RULE;
 	}
 
-	if(strlen($password) < 3){
-		$error[] = 'Password is too short.';
-	}
-
-	if(strlen($passwordConfirm) < 3){
-		$error[] = 'Confirm password is too short.';
+	if(!matches_rule($password, PASSWORD_PATTERN)){
+		$error[] = PASSWORD_RULE;
 	}
 
 	if($password !== $passwordConfirm){
@@ -157,7 +153,7 @@ require('layout/header.php');
 </form>
 <h3>General Instructions</h3>
 <ul>
-	<li>Do <b>NOT</b> use special characters, spaces, etc. in your username. Please use only letters and numbers.</li>
+	<li>Do <b>NOT</b> use special characters, spaces, etc. in your username. Please use only letters, digits, - or _ (3 to 30 characters).</li>
 	<li>After sign up you will receive a verification link on the email registered. Verify by clicking on the link and then login. <u>You won't be able to login unless you have verified your account.</u></li>
 	<li>Also, try to use a desktop or laptops as much as possible. Some levels might require it.</li>
 </ul>

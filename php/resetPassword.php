@@ -18,12 +18,8 @@ if(!isset($stop) && isset($_POST['submit'])){
 	$passwordConfirm = is_string($_POST['passwordConfirm'] ?? null) ? $_POST['passwordConfirm'] : '';
 
 	//basic validation
-	if(strlen($password) < 3){
-		$error[] = 'Password is too short.';
-	}
-
-	if(strlen($passwordConfirm) < 3){
-		$error[] = 'Confirm password is too short.';
+	if(!matches_rule($password, PASSWORD_PATTERN)){
+		$error[] = PASSWORD_RULE;
 	}
 
 	if($password !== $passwordConfirm){

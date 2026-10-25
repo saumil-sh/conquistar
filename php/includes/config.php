@@ -18,6 +18,16 @@ function h($value) {
 	return htmlspecialchars(is_scalar($value) ? (string) $value : '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+// Shared by the server checks and the HTML pattern attributes, so both enforce the same rules.
+const USERNAME_PATTERN = '[A-Za-z0-9_\\-]{3,30}';
+const PASSWORD_PATTERN = '(?=.*[A-Za-z])(?=.*[0-9]).{8,}';
+const USERNAME_RULE = 'Username must be 3 to 30 letters, digits, - or _.';
+const PASSWORD_RULE = 'Password must be at least 8 characters and include a letter and a digit.';
+
+function matches_rule($value, $pattern) {
+	return preg_match('/\A' . $pattern . '\z/Du', $value) === 1;
+}
+
 function csrf_field() {
 	return '<input type="hidden" name="csrf_token" value="' . h($_SESSION['csrf_token']) . '">';
 }

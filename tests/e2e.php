@@ -232,12 +232,23 @@ try {
 	$response = e2e_request($baseUrl, 'registerpage.php');
 	e2e_check($response['status'] === 200, 'Registration form did not load.');
 	$cookie = $response['cookie'];
+	$weak = e2e_request($baseUrl, 'registerpage.php', 'POST', array(
+		'csrf_token' => e2e_csrf($response['body']),
+		'username' => 'has space',
+		'email' => 'weak@example.test',
+		'password' => 'lettersonly',
+		'passwordConfirm' => 'lettersonly',
+		'ins' => 'Test institute',
+		'submit' => 'Register',
+	), $cookie);
+	e2e_check(strpos($weak['body'], 'Username must be 3 to 30 letters') !== false
+		&& strpos($weak['body'], 'include a letter and a digit') !== false, 'A bad username or weak password was accepted.');
 	foreach (array(1, 2, 3) as $attempt) {
 		$invalid = e2e_request($baseUrl, 'registerpage.php', 'POST', array(
 			'csrf_token' => e2e_csrf($response['body']),
 			'username' => $username,
 			'email' => $username . '@example.test',
-			'password' => 'old-password',
+			'password' => 'old-password1',
 			'passwordConfirm' => 'mistyped-password',
 			'ins' => 'Test institute',
 			'submit' => 'Register',
@@ -248,8 +259,8 @@ try {
 		'csrf_token' => e2e_csrf($response['body']),
 		'username' => $username,
 		'email' => $username . '@example.test',
-		'password' => 'old-password',
-		'passwordConfirm' => 'old-password',
+		'password' => 'old-password1',
+		'passwordConfirm' => 'old-password1',
 		'ins' => 'Test institute',
 		'submit' => 'Register',
 	), $cookie);
@@ -275,7 +286,7 @@ try {
 	$response = e2e_request($baseUrl, 'login.php', 'POST', array(
 		'csrf_token' => e2e_csrf($response['body']),
 		'username' => $username,
-		'password' => 'old-password',
+		'password' => 'old-password1',
 		'submit' => 'Login',
 	), $cookie);
 	e2e_check($response['status'] === 302, 'Login failed after activation.');
@@ -407,8 +418,8 @@ try {
 	$cookie = $response['cookie'];
 	$response = e2e_request($baseUrl, 'resetPassword.php?key=' . $reset[1], 'POST', array(
 		'csrf_token' => e2e_csrf($response['body']),
-		'password' => 'new-password',
-		'passwordConfirm' => 'new-password',
+		'password' => 'new-password1',
+		'passwordConfirm' => 'new-password1',
 		'submit' => 'Change Password',
 	), $cookie);
 	e2e_check($response['status'] === 302, 'Password reset did not complete.');
@@ -420,7 +431,7 @@ try {
 	$response = e2e_request($baseUrl, 'login.php', 'POST', array(
 		'csrf_token' => e2e_csrf($response['body']),
 		'username' => $username,
-		'password' => 'new-password',
+		'password' => 'new-password1',
 		'submit' => 'Login',
 	), $cookie);
 	e2e_check($response['status'] === 302, 'Login failed after password reset.');
@@ -463,8 +474,8 @@ try {
 	$reactivate = $db->prepare("UPDATE members SET active = 'Yes' WHERE memberID = :id");
 	$reactivate->execute(array(':id' => $registeredMemberId));
 
-	$deleteCookie = e2e_login($baseUrl, $username, 'new-password');
-	$staleCookie = e2e_login($baseUrl, $username, 'new-password');
+	$deleteCookie = e2e_login($baseUrl, $username, 'new-password1');
+	$staleCookie = e2e_login($baseUrl, $username, 'new-password1');
 	$deleteForm = e2e_request($baseUrl, 'delete-account.php', 'GET', array(), $deleteCookie);
 	$deleted = e2e_request($baseUrl, 'delete-account.php', 'POST', array(
 		'csrf_token' => e2e_csrf($deleteForm['body']),
