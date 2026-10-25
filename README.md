@@ -1,154 +1,52 @@
 # Conquistar
 
-## Local development
+A small online puzzle hunt. Players register, solve one question per level,
+can reveal one hint per question, and race up a leaderboard. You, the quiz
+master, add the questions and open or close the event.
 
-The site lives in `php/`, which is the web root. Create a local database from
-`schema.sql`, make sure the database server is running, then start the site
-with your database credentials:
+Developing or testing the code? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-```sh
-DB_HOST=127.0.0.1 DB_NAME=conquistar DB_USER=your_user DB_PASSWORD=your_password \
-  php -S localhost:8000 -t php
-```
+## Self-hosting
 
-Use `DB_PORT` if MySQL listens on a port other than 3306. The database and its
-credentials must already exist; the application does not create them.
+You need PHP 8.2 or newer with `pdo_mysql`, MariaDB or MySQL, and a way to send
+email. Shared hosting with cPanel usually has all three.
 
-PHP does not load `.env` files automatically. If your credentials are saved in a
-private shell file, load it before starting (or restarting) the PHP server:
+1. Upload the repository and point the domain's document root at `php/`.
+   In cPanel, set it under Domains. Everything outside `php/` then stays private.
+2. Create an empty database and a database user, then load the schema:
 
-```sh
-. "$HOME/.config/conquistar/dev.env"
-php -S localhost:8000 -t php
-```
+   ```sh
+   mariadb -u USER -p DBNAME < schema.sql
+   ```
 
-Keep that file outside the repository and web root, readable only by your user.
-It must export the `DB_*` variables shown above.
+3. Set these environment variables for PHP (the app does not read `.env` files):
 
-With PHP's built-in server bound to `localhost`, `127.0.0.1`, or `::1`, an unset
-`APP_URL` defaults to that server's loopback address and listening port.
-Activation and reset links never use the incoming `Host` header. Set `APP_URL`
-explicitly when testing another base URL or serving from a subdirectory.
-Other server types and non-loopback bindings still require `APP_URL`.
+   | Variable | Example | Purpose |
+   |---|---|---|
+   | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | `localhost`, `3306`, … | Database connection |
+   | `APP_URL` | `https://example.org/` | Base URL used in email links. Do not derive it from the request. |
+   | `SITE_EMAIL` | `quiz@example.org` | Sender address. Without it, no email is sent. |
+   | `SITE_NAME` | `My Hunt` | Name in the menu, titles and emails (default `Conquistar`) |
+   | `HINTS_URL` | `https://…` | Optional link to an external hints page |
 
-## Production PHP settings
+4. Make sure PHP can send email. Email uses PHP's `mail()`, which needs a
+   working `sendmail`. Shared hosting usually provides one. Elsewhere, install
+   `msmtp` and `msmtp-mta` and put your SMTP account in `~/.msmtprc`
+   (`chmod 600`).
+5. Apply the PHP settings in `php/php.ini` (in cPanel: MultiPHP INI Editor) and
+   use a patched PHP release. Details are in
+   [CONTRIBUTING.md](CONTRIBUTING.md#production-php-settings).
+6. Register your own account on the site, then make it the quiz master. The
+   site never grants this role itself:
 
-The checked-in `php/php.ini` records the required account settings, but cPanel controls
-the PHP runtime and may regenerate this file. In cPanel, select a patched PHP
-release and apply these settings through the MultiPHP INI Editor (or have the
-host apply them before request parsing). PHP 8.2.35, 8.3.36, 8.4.27, and 8.5.12
-include the fixes for CVE-2026-109618 and CVE-2026-109619. PHP 8.1 and older
-need a vendor-confirmed backport or an upgrade; this repository does not select
-or upgrade the server runtime.
+   ```sql
+   UPDATE members SET quiz_master = 1 WHERE username = 'your-name';
+   ```
 
-Keep `allow_url_include` and `display_errors` off, set
-`session.upload_progress.enabled=Off`, and keep `post_max_size` at 8M because
-the application has no upload flow. Apply the upload-progress setting in the
-server/PHP configuration before request parsing and restart all PHP workers;
-`.user.ini` or application-level `ini_set()` is not sufficient. These measures
-reduce exposure but are not a substitute for the fixed PHP release. The app's
-actual PHP version and cPanel settings must be verified on the server.
+7. Add questions (next section), then open the event on `quizmaster.php`.
+   The event starts closed, and players cannot answer until you open it.
 
-Set `APP_URL` to the trusted absolute base URL used in activation and password
-reset emails (for example, `https://example.org/`). Do not derive it from the
-incoming request host.
-
-Set `SITE_EMAIL` to the sender address for those emails; without a valid
-address, registration and password reset report that the email could not be
-sent. `SITE_NAME` sets the name shown in the menu, titles, and emails (default:
-`Conquistar`). `HINTS_URL` is optional; when set, the menu and dashboard link to
-it.
-
-Email is sent with PHP's `mail()`, which needs a working `sendmail` on the
-server. Shared hosting usually provides one. Elsewhere, install `msmtp` and
-`msmtp-mta` and put your SMTP account in `~/.msmtprc` (`chmod 600`).
-
-`schema.sql` is the canonical schema for a fresh database. It includes the final columns introduced by the Phase 2 migrations
-and the leaderboard index, plus the member login counter and unique account
-indexes; do not apply the upgrade migrations on top of it.
-
-For an existing database, review the SQL scripts in `migrations/` in this order
-against a verified backup; the application does not run them:
-
-1. `phase2-06-activation-expiry.sql`
-2. `phase2-07-reset-expiry.sql`
-3. `phase2-08-request-limits.sql`
-4. `phase2-09-member-columns.sql`
-5. `phase3-11-leaderboard-index.sql`
-6. `phase3-12-member-login-indexes.sql`
-7. `phase3-13-drop-answerlog-member-time.sql`
-8. `phase4-17-event-state.sql`
-9. `phase4-18-quiz-master-role.sql`
-10. `phase5-19-hints.sql`
-11. `phase5-20-leaderboard-hints-index.sql`
-
-Before step 4, verify `members.memberID` is a non-null unique/primary key and
-that existing activation/reset tokens fit within 64 characters. The migration
-sets null levels to zero before enforcing `NOT NULL DEFAULT 0`.
-Before step 5, verify the index does not already exist. No live database schema
-has been verified, and no migration has been run against a real database.
-Before step 6, verify `logincount` and the named unique indexes are absent, and
-check for duplicate usernames and emails; resolve duplicates manually before
-adding either unique key. If any of these already exist, verify their
-definitions and skip the corresponding addition rather than rerunning it. The
-fresh schema omits `answerlog_member_time`; step 7 drops that named index only
-if it exists, leaving every other index unchanged. The event begins closed in a
-fresh schema and in step 8; a quiz master must open it before players can
-continue.
-Step 9 gives every existing account the non-privileged default. After verifying
-the intended operator's account, grant quiz-master access directly to that
-member ID with a controlled database change; the application never grants this
-role through registration. Access is checked against the database on every
-request.
-Players can delete their account from the dashboard. The deletion request is
-CSRF-protected, requires the signed-in session, and removes the member and
-answer history in one transaction.
-
-The canonical schema describes the tables used by the current application:
-`members`, `questions`, `answerlog`, `request_limits`, and `event_state`. The
-schema is the single fresh-install reference and does not drop or alter any
-existing table or data.
-
-Database tests require an explicitly named `test_*` database (bare `test` is
-rejected) and matching `TEST_DB_NAME` and `DB_NAME`. The end-to-end runner also
-requires a loopback database host. Set `DB_NAME` for the application
-connection rather than editing the schema or migration files.
-
-To run end-to-end checks, first create an isolated, empty `test_*` database and
-apply `schema.sql` to it. Set `DB_NAME` and `TEST_DB_NAME` to that same test
-database, set `TEST_DB_HOST=localhost`, and provide only test credentials
-through `TEST_DB_USER` and `TEST_DB_PASSWORD`. Then run
-`php tests/e2e.php`; it starts a local PHP server and captures test emails
-privately rather than sending them. The runner refuses non-test names, remote
-database hosts, and test databases with existing members, questions, answer
-logs, or rate-limit rows.
-For a private database on another TCP port, use `TEST_DB_HOST=127.0.0.1` and
-set `TEST_DB_PORT` to that port. The suite includes public-page smoke checks
-and verifies local startup without `APP_URL`, including email links under a
-forged request `Host` header.
-
-The leaderboard includes active accounts only. It orders by highest level,
-then fewest hints used, then earliest solve time, then lowest member ID for a deterministic final tie.
-It shows the first 50 players and, when you are signed in, your rank even if
-you are outside that list.
-
-Sources: [PHP security advisory](https://www.php.net/archive/2026.php#2026-10-21-5)
-and [session upload-progress advisory](https://www.php.net/archive/2026.php#2026-10-23-1).
-
-Point the domain's document root at `php/`. In cPanel, set it under
-Domains; `tests/`, `tools/`, `migrations/`, and `schema.sql` then stay outside
-the web root.
-
-Question media is served by `php/media.php` from an explicit file map and is
-available only at or below the player's current level. Put media files in
-`php/accessible/` and list them in `php/includes/media-catalog.php`. Keep the
-web-server access rules in `php/accessible/.htaccess` and
-`php/questions/.htaccess` enabled; if a front-end server ignores Apache rules,
-deny direct access to both directories there as well. If the repository root
-is ever served instead of `php/`, the `tests/.htaccess` and `tools/.htaccess`
-rules deny direct web access to those folders.
-
-## Adding a live question
+## Adding a question
 
 Players see level `N` from `php/questions/q_N.html` (levels start at 0). Store
 its answer as a hash of the lowercase answer without spaces, with an optional
@@ -163,62 +61,29 @@ INSERT INTO questions (qID, Answer, hint) VALUES (0, '<hash>', 'Named after a Ro
 ```
 
 Each revealed hint is recorded in `hint_uses` with a UTC time and counted in
-`members.hints_used`.
+`members.hints_used`. Question pages are ignored by git, so your content stays
+out of the repository.
 
-## Authoring questions
+### Images
 
-New questions use a small Markdown file with a stable lowercase ID, title,
-private answer, one or more hints, and optional approved media IDs:
+Question media is served by `php/media.php` from an explicit file map and is
+available only at or below the player's current level. Put media files in
+`php/accessible/` and list them in `php/includes/media-catalog.php`. Keep the
+web-server access rules in `php/accessible/.htaccess` and
+`php/questions/.htaccess` enabled; if a front-end server ignores Apache rules,
+deny direct access to both directories there as well. If the repository root
+is ever served instead of `php/`, the `tests/.htaccess` and `tools/.htaccess`
+rules deny direct web access to those folders.
 
-```markdown
----
-id: sample-lunar
-title: Sample clue
-answer: Example answer
-hint: First example hint
-hint: Second example hint
----
-# Sample clue
+## How the game works
 
-Write the player-facing clue here.
-```
+All times are stored and shown in UTC.
 
-Use one `id`, `title`, and `answer`; repeat `hint` or `media` as needed. Image
-references must use an ID in `php/includes/media-catalog.php`; HTML, external or
-reference-style images, and reference-style links are rejected. Inline links
-allow only `https`, `http`, `mailto`, or local fragments. This format is
-deliberately limited. Legacy question pages and their media have been moved to
-the private `legacy-retired` archive under `QUESTION_CONTENT_DIR` and removed
-from repository history. The player and quiz-master flows report that no
-questions are available until new player-facing content is ready.
+The leaderboard includes active accounts only. It orders by highest level,
+then fewest hints used, then earliest solve time, then lowest member ID for a deterministic final tie.
+It shows the first 50 players and, when you are signed in, your rank even if
+you are outside that list.
 
-Keep authored files outside both the repository and the web document root. The
-CLI enforces both boundaries; setting a different `QUESTION_WEB_ROOT` cannot
-make an in-repository folder private. Set
-`QUESTION_CONTENT_DIR` to a private directory with `drafts/` and `published/`
-subdirectories, and set `QUESTION_WEB_ROOT` to the actual document root. For
-example:
-
-```sh
-export QUESTION_CONTENT_DIR="$HOME/conquistar-private"
-export QUESTION_WEB_ROOT="/path/to/the/actual/document-root"
-mkdir -p "$QUESTION_CONTENT_DIR/drafts" "$QUESTION_CONTENT_DIR/published"
-chmod 700 "$QUESTION_CONTENT_DIR" "$QUESTION_CONTENT_DIR/drafts" "$QUESTION_CONTENT_DIR/published"
-```
-
-Save the example as `$QUESTION_CONTENT_DIR/drafts/sample-lunar.md`, then run:
-
-```sh
-php tools/questions.php validate sample-lunar
-php tools/questions.php preview sample-lunar
-php tools/questions.php publish sample-lunar
-```
-
-Preview is terminal-only and includes the answer and hints for the quiz master.
-Publishing validates the file and moves it into the private release queue; it
-does not yet make Markdown content available to players. No Markdown answers
-or drafts are served publicly.
-
-The database-independent checks are `php tests/test_db_guard_test.php` and
-`php tests/question_authoring_test.php`. The end-to-end suite is separate because
-it requires the isolated local test database described above.
+Players can delete their account from the dashboard. The deletion request is
+CSRF-protected, requires the signed-in session, and removes the member and
+answer history in one transaction.
