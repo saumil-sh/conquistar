@@ -51,12 +51,6 @@ require('layout/header.php');
 				<?php if ($isQuizMaster): ?>
 					<p><a href="quizmaster.php">Manage event</a></p>
 				<?php endif; ?>
-				<h3><a href="leaderboard.php">Leaderboard</a></h3>
-				<form method="post" action="logout.php">
-					<?= csrf_field() ?>
-					<button type="submit" class="outline">Logout</button>
-				</form>
-				<hr>
 
 </main>
 
