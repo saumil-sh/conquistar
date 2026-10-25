@@ -57,7 +57,8 @@ define('DBNAME','test');
 // Email links use this configured origin, never the request Host header.
 $appUrl = getenv('APP_URL');
 if ($appUrl === false || $appUrl === '') {
-	$appUrl = 'http://localhost:8000/';
+	http_response_code(500);
+	exit('APP_URL must be configured.');
 }
 $appUrlParts = parse_url($appUrl);
 if (!filter_var($appUrl, FILTER_VALIDATE_URL)
