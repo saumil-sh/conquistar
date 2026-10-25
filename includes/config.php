@@ -72,12 +72,18 @@ date_default_timezone_set('Europe/Berlin');
 
 //database credentials
 define('DBHOST', getenv("DB_HOST") ?: "localhost");
+define('DBPORT', getenv("DB_PORT") ?: "3306");
 define("DBUSER", getenv("DB_USER") ?: "");
 define("DBPASS", getenv("DB_PASSWORD") ?: "");
 define('DBNAME', getenv("DB_NAME") ?: "test");
 
-// Email links use this configured origin, never the request Host header.
+// The built-in development server exposes its bind address separately from the request Host.
 $appUrl = getenv('APP_URL');
+if (($appUrl === false || $appUrl === '') && PHP_SAPI === 'cli-server'
+	&& in_array($_SERVER['SERVER_NAME'] ?? '', array('localhost', '127.0.0.1', '::1'), true)) {
+	$host = $_SERVER['SERVER_NAME'] === '::1' ? '[::1]' : $_SERVER['SERVER_NAME'];
+	$appUrl = 'http://' . $host . ':' . $_SERVER['SERVER_PORT'];
+}
 if ($appUrl === false || $appUrl === '') {
 	http_response_code(500);
 	exit('APP_URL must be configured.');
@@ -101,7 +107,7 @@ try {
 
 	//create PDO connection
 	$db = new PDO(
-		"mysql:host=" . DBHOST . ";dbname=" . DBNAME . ";charset=utf8mb4",
+		"mysql:host=" . DBHOST . ";port=" . DBPORT . ";dbname=" . DBNAME . ";charset=utf8mb4",
 		DBUSER,
 		DBPASS,
 		array(

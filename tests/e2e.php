@@ -11,6 +11,14 @@ if (!in_array($databaseHost, array('localhost', '127.0.0.1', '::1'), true)) {
 	fwrite(STDERR, "End-to-end tests only connect to a loopback database host.\n");
 	exit(2);
 }
+$databasePort = getenv('TEST_DB_PORT');
+if ($databasePort === false || $databasePort === '') {
+	$databasePort = '3306';
+}
+if (!ctype_digit($databasePort) || (int) $databasePort < 1 || (int) $databasePort > 65535) {
+	fwrite(STDERR, "TEST_DB_PORT must be a TCP port between 1 and 65535.\n");
+	exit(2);
+}
 $databaseUser = getenv('TEST_DB_USER');
 $databasePassword = getenv('TEST_DB_PASSWORD');
 if (!is_string($databaseUser) || !is_string($databasePassword)) {
@@ -74,7 +82,8 @@ function e2e_check($condition, $message)
 function e2e_request($baseUrl, $path, $method = 'GET', $fields = array(), $cookie = '')
 {
 	$url = preg_match('/\Ahttps?:\/\//i', $path) ? $path : $baseUrl . ltrim($path, '/');
-	$headers = array('Accept: */*');
+	// Email links must keep the trusted origin even when the request Host is forged.
+	$headers = array('Accept: */*', 'Host: untrusted.example');
 	if ($cookie !== '') {
 		$headers[] = 'Cookie: PHPSESSID=' . $cookie;
 	}
@@ -100,7 +109,7 @@ function e2e_request($baseUrl, $path, $method = 'GET', $fields = array(), $cooki
 			$status = (int) $matches[1];
 		}
 		if (preg_match('/^Set-Cookie:\s*PHPSESSID=([^;]*)/i', $header, $matches)) {
-			$newCookie = $matches[1];
+			$newCookie = preg_match('/;\s*Max-Age=0(?:;|$)/i', $header) ? '' : $matches[1];
 		}
 	}
 	return array('status' => $status, 'body' => $body, 'headers' => $http_response_header, 'cookie' => $newCookie);
@@ -153,7 +162,7 @@ function e2e_mail_messages($path)
 try {
 	try {
 		$db = new PDO(
-			'mysql:host=' . $databaseHost . ';dbname=' . $testDatabase . ';charset=utf8mb4',
+			'mysql:host=' . $databaseHost . ';port=' . $databasePort . ';dbname=' . $testDatabase . ';charset=utf8mb4',
 			$databaseUser,
 			$databasePassword,
 			array(PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC)
@@ -184,8 +193,8 @@ try {
 
 	$environment = array(
 		'APP_ENV' => 'test',
-		'APP_URL' => $baseUrl,
 		'DB_HOST' => $databaseHost,
+		'DB_PORT' => $databasePort,
 		'DB_NAME' => $testDatabase,
 		'DB_USER' => $databaseUser,
 		'DB_PASSWORD' => $databasePassword,
@@ -212,6 +221,14 @@ try {
 	}
 	e2e_check($ready, 'The local PHP test server did not become ready.');
 
+	$response = e2e_request($baseUrl, '');
+	e2e_check($response['status'] === 302 && e2e_location($response) === 'registerpage.php', 'The home page did not redirect to registration.');
+	foreach (array('login.php', 'reset.php', 'leaderboard.php') as $path) {
+		$response = e2e_request($baseUrl, $path);
+		e2e_check($response['status'] === 200, 'Smoke check failed for ' . $path . '.');
+	}
+	echo "Public-page smoke checks passed without APP_URL.\n";
+
 	$response = e2e_request($baseUrl, 'registerpage.php');
 	e2e_check($response['status'] === 200, 'Registration form did not load.');
 	$cookie = $response['cookie'];
@@ -234,6 +251,8 @@ try {
 	$memberIds[] = $registeredMemberId;
 	$messages = e2e_mail_messages($capturePath);
 	e2e_check(count($messages) === 1 && preg_match('/activate\.php\?x=([0-9]+)&amp;y=([a-f0-9]{64})/', $messages[0]['body'], $activation), 'Registration activation email was not captured.');
+	e2e_check(strpos($messages[0]['body'], $baseUrl . 'activate.php?') !== false
+		&& strpos($messages[0]['body'], 'untrusted.example') === false, 'Activation email did not use the trusted local server address.');
 	$activationResponse = e2e_request($baseUrl, 'activate.php?x=' . $activation[1] . '&y=' . $activation[2]);
 	e2e_check($activationResponse['status'] === 302, 'Activation link did not activate the account.');
 	$replayResponse = e2e_request($baseUrl, 'activate.php?x=' . $activation[1] . '&y=' . $activation[2]);
@@ -352,6 +371,8 @@ try {
 	e2e_check($response['status'] === 302, 'Password reset request did not complete.');
 	$messages = e2e_mail_messages($capturePath);
 	e2e_check(count($messages) === 2 && preg_match('/resetPassword\.php\?key=([a-f0-9]{64})/', $messages[1]['body'], $reset), 'Password reset email was not captured.');
+	e2e_check(strpos($messages[1]['body'], $baseUrl . 'resetPassword.php?') !== false
+		&& strpos($messages[1]['body'], 'untrusted.example') === false, 'Password reset email did not use the trusted local server address.');
 	$response = e2e_request($baseUrl, 'resetPassword.php?key=' . $reset[1]);
 	e2e_check($response['status'] === 200, 'Password reset form did not load.');
 	$cookie = $response['cookie'];

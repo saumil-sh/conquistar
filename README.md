@@ -4,6 +4,36 @@
 - understand how it works
     1. try making a new user without any errors.
 
+## Local development
+
+Create a local database from `schema.sql`, then start the server with your
+database credentials:
+
+```sh
+DB_HOST=127.0.0.1 DB_NAME=conquistar DB_USER=your_user DB_PASSWORD=your_password \
+  php -S localhost:8000
+```
+
+Use `DB_PORT` if MySQL listens on a port other than 3306. The database and its
+credentials must already exist; the application does not create them.
+
+PHP does not load `.env` files automatically. If your credentials are saved in a
+private shell file, load it before starting (or restarting) the PHP server:
+
+```sh
+. "$HOME/.config/conquistar/dev.env"
+php -S localhost:8000
+```
+
+Keep that file outside the repository and web root, readable only by your user.
+It must export the `DB_*` variables shown above.
+
+With PHP's built-in server bound to `localhost`, `127.0.0.1`, or `::1`, an unset
+`APP_URL` defaults to that server's loopback address and listening port.
+Activation and reset links never use the incoming `Host` header. Set `APP_URL`
+explicitly when testing another base URL or serving from a subdirectory.
+Other server types and non-loopback bindings still require `APP_URL`.
+
 ## Production PHP settings
 
 The checked-in `php.ini` records the required account settings, but cPanel controls
@@ -82,6 +112,10 @@ through `TEST_DB_USER` and `TEST_DB_PASSWORD`. Then run
 privately rather than sending them. The runner refuses non-test names, remote
 database hosts, and test databases with existing members, questions, answer
 logs, or rate-limit rows.
+For a private database on another TCP port, use `TEST_DB_HOST=127.0.0.1` and
+set `TEST_DB_PORT` to that port. The suite includes public-page smoke checks
+and verifies local startup without `APP_URL`, including email links under a
+forged request `Host` header.
 
 The leaderboard includes active accounts only. It orders by highest level,
 then earliest solve time, then lowest member ID for a deterministic final tie.
