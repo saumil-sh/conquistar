@@ -67,7 +67,7 @@ echo '<main class="container">';
 					':ipadd' => $clientIp,
 				));
 
-                $gans = strtolower(str_replace(' ', '', $answer));
+                $gans = mb_strtolower(str_replace(' ', '', $answer), 'UTF-8');
                 $stmt = $db->prepare('SELECT Answer FROM questions WHERE qID = :level');
                 $stmt->execute(array(':level' => $res['level']));
                 $res2 = $stmt->fetch();

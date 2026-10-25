@@ -186,7 +186,7 @@ try {
 	$eventUpdate->execute(array(':is_open' => 1));
 	e2e_check((int) $db->query('SELECT is_open FROM event_state WHERE singleton_id = 1')->fetchColumn() === 1, 'Could not open the test event.');
 
-	$testAnswerHash = password_hash('testanswer', PASSWORD_BCRYPT);
+	$testAnswerHash = password_hash('éteanswer', PASSWORD_BCRYPT);
 	$stmt = $db->prepare("INSERT INTO questions (qID, Answer, hint) VALUES (0, :answer, 'Test-only <hint>')");
 	$stmt->execute(array(':answer' => $testAnswerHash));
 	$questionTouched = true;
@@ -296,7 +296,7 @@ try {
 	e2e_check(strpos($response['body'], '<form action="process.php" method="post">') === false, 'A retired puzzle still rendered an answer form.');
 	$unavailableAnswer = e2e_request($baseUrl, 'process.php', 'POST', array(
 		'csrf_token' => e2e_csrf($response['body']),
-		'ans' => 'testanswer',
+		'ans' => 'éteanswer',
 	), $cookie);
 	e2e_check($unavailableAnswer['status'] === 200 && strpos($unavailableAnswer['body'], 'temporarily unavailable while questions are being updated') !== false, 'A retired puzzle accepted an answer submission.');
 	$closedState = $db->prepare('SELECT level FROM members WHERE memberID = :id');
@@ -316,7 +316,7 @@ try {
 	$eventUpdate->execute(array(':is_open' => 0));
 	$closedAnswer = e2e_request($baseUrl, 'process.php', 'POST', array(
 		'csrf_token' => e2e_csrf($response['body']),
-		'ans' => 'testanswer',
+		'ans' => 'éteanswer',
 	), $cookie);
 	e2e_check($closedAnswer['status'] === 200 && strpos($closedAnswer['body'], 'The event is closed.') !== false, 'An answer was not rejected while the event was closed.');
 	e2e_check(strpos($closedAnswer['body'], '<form action="process.php" method="post">') === false, 'A closed event still rendered an answer form.');
@@ -343,7 +343,7 @@ try {
 	e2e_check($hintUse && (int) $hintUse['hints_used'] === 1 && abs(strtotime($hintUse['used_at'] . ' UTC') - time()) < 120, 'The hint use was not recorded once in UTC.');
 	$response = e2e_request($baseUrl, 'process.php', 'POST', array(
 		'csrf_token' => e2e_csrf($response['body']),
-		'ans' => 'testanswer',
+		'ans' => 'Éte Answer',
 	), $cookie);
 	e2e_check($response['status'] === 302, 'Correct answer did not advance the player.');
 	$state = $db->prepare('SELECT level, lastsolvetime FROM members WHERE memberID = :id');
@@ -357,7 +357,7 @@ try {
 	$response = e2e_request($baseUrl, 'process.php', 'GET', array(), $cookie);
 	$replayResponse = e2e_request($baseUrl, 'process.php', 'POST', array(
 		'csrf_token' => e2e_csrf($response['body']),
-		'ans' => 'testanswer',
+		'ans' => 'éteanswer',
 	), $cookie);
 	$state->execute(array(':id' => $registeredMemberId));
 	e2e_check((int) $state->fetchColumn() === 1, 'Answer replay advanced the player again.');
@@ -375,7 +375,7 @@ try {
 	$response = e2e_request($baseUrl, 'process.php', 'GET', array(), $cookie);
 	$midRequestClose = e2e_request($baseUrl, 'process.php', 'POST', array(
 		'csrf_token' => e2e_csrf($response['body']),
-		'ans' => 'testanswer',
+		'ans' => 'éteanswer',
 	), $cookie);
 	e2e_check($midRequestClose['status'] === 200 && strpos($midRequestClose['body'], 'The event is closed.') !== false, 'The event closing during answer processing was not reported.');
 	e2e_check(strpos($midRequestClose['body'], '<form action="process.php" method="post">') === false, 'An event closed mid-request still rendered an answer form.');

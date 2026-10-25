@@ -49,11 +49,11 @@ email. Shared hosting with cPanel usually has all three.
 ## Adding a question
 
 Players see level `N` from `php/questions/q_N.html` (levels start at 0). Store
-its answer as a hash of the lowercase answer without spaces, with an optional
-hint that players can reveal once:
+its answer as a hash of the lowercase answer without spaces (players may type
+any case and spaces), with an optional hint that players can reveal once:
 
 ```sh
-php -r 'echo password_hash("jupiter", PASSWORD_DEFAULT), PHP_EOL;'
+php -r 'echo password_hash(mb_strtolower(str_replace(" ", "", $argv[1])), PASSWORD_DEFAULT), PHP_EOL;' 'Jupiter'
 ```
 
 ```sql
