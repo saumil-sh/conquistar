@@ -1,16 +1,10 @@
 <?php require('includes/config.php'); 
  ob_start();
  if( !$user->is_logged_in() ){ header('Location: login.php'); exit; }
- else //Remove this block to allow process.php to work normally
- {
-     //if($SESSION["username"]!="venkata") {header('Location: memberpage.php');}
- }
-//require('layout/header.php'); 
 ?>
 <?php echo '
 <head>
 <meta charset="UTF-8">
-<!--<title>Conquistar | Questions</title>-->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
 <link rel="icon" type="image/png" href="assets/favicon.png">
 </head>
@@ -90,8 +84,6 @@
     }
 	    
 	    
-	    /*echo '<form role="form" method="post" action="process.php" autocomplete="off"> <p> Enter Answer: <input type="text" name="ans" id="ans" class="form-control input-lg" placeholder="Answer" value="" tabindex="1"/></p> <input type="submit" name="submit" value="Submit" class="btn btn-primary btn-block btn-lg" tabindex="6"><br/> </form>';
-		echo '</div>';*/
 		
 require('layout/footer.php'); 
 ?>

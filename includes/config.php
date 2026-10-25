@@ -64,7 +64,6 @@ $appUrlParts = parse_url($appUrl);
 if (!filter_var($appUrl, FILTER_VALIDATE_URL)
 	|| !is_array($appUrlParts)
 	|| !isset($appUrlParts['scheme'], $appUrlParts['host'])
-	|| $appUrlParts['host'] === ''
 	|| !in_array(strtolower($appUrlParts['scheme']), array('http', 'https'), true)
 	|| isset($appUrlParts['user'])
 	|| isset($appUrlParts['pass'])
